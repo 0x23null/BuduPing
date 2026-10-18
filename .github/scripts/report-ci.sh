@@ -51,10 +51,10 @@ for attempt in 1 2 3 4 5; do
     for f in "$CI_UI_DIR"/*.png; do
       [ -f "$f" ] && cp "$f" "$WS/.ci-wt/reports/ui-$NAME/" 2>/dev/null || true
     done
-    git add "reports/ui-$NAME" || true
   fi
   cd "$WS/.ci-wt" || break
   git add "reports/$NAME.md" || true
+  [ -d "reports/ui-$NAME" ] && git add "reports/ui-$NAME" || true
   if git commit -m "ci-report: $NAME $STATUS run ${GITHUB_RUN_NUMBER:-?}" >/dev/null 2>&1; then
     if git push origin HEAD:ci-reports >/dev/null 2>&1; then
       cd "$WS" || true

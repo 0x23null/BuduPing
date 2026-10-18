@@ -52,10 +52,6 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var picker by remember { mutableStateOf<Emotion?>(null) }
     var myCharacter by remember { mutableStateOf(prefs.myCharacter) }
     var characterPicker by remember { mutableStateOf(false) }
-    LaunchedEffect(myCharacter, catalog) {
-        // One-time "who are you" prompt: pops after pairing once the catalog is loaded.
-        if (myCharacter == null && catalog.isNotEmpty()) characterPicker = true
-    }
     var replyType by remember { mutableStateOf<String?>(null) }
     var funTick by remember { mutableIntStateOf(0) }
     var comboType by remember { mutableStateOf("") }
@@ -69,6 +65,10 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         value = withContext(Dispatchers.IO) {
             runCatching { StickerCatalog.load(context) }.getOrElse { catalogError = true; emptyList() }
         }
+    }
+    LaunchedEffect(myCharacter, catalog) {
+        // One-time "who are you" prompt: pops after pairing once the catalog is loaded.
+        if (myCharacter == null && catalog.isNotEmpty()) characterPicker = true
     }
     LaunchedEffect(isForeground) {
         if (isForeground) while (true) { now = System.currentTimeMillis(); delay(2_000) }
