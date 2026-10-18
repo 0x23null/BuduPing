@@ -81,7 +81,7 @@ public partial class App : Application
         _settings = new SettingsWindow(this);
         _settings.RefreshUi(); _settings.Show();
         var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
-        timer.Tick += (_, _) =>
+        timer.Tick += async (_, _) =>
         {
             timer.Stop();
             try
@@ -90,14 +90,30 @@ public partial class App : Application
                 if (_settings.FindName("SettingsScroll") is ScrollViewer scroll) scroll.ScrollToEnd();
                 _settings.UpdateLayout();
                 SaveWindow("settings-options.png");
+                _settings.Hide();
+                _overlay = new OverlayWindow(_stickers, this);
+                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương",
+                    Text = "Một cái ôm gửi đến bạn. Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
+                await Task.Delay(950);
+                SaveVisual((FrameworkElement)_overlay.Content, "overlay-message.png");
+                _overlay.ResetPair();
+                _overlay.ShowPing(new PingEvent { Id = "review-combo-0", Type = "love", IsLocal = true });
+                for (int i = 1; i < 13; i++)
+                    _overlay.ShowPing(new PingEvent { Id = "review-combo-" + i, Type = "love", IsLocal = true });
+                await Task.Delay(950);
+                SaveVisual((FrameworkElement)_overlay.Content, "overlay-combo.png");
             }
-            finally { _exiting = true; _hotkey.Dispose(); Shutdown(); }
+            finally { _overlay?.ResetPair(); _exiting = true; _hotkey.Dispose(); Shutdown(); }
         };
         timer.Start();
         void SaveWindow(string name)
         {
             _settings.UpdateLayout();
-            var visual = (FrameworkElement)_settings.Content;
+            SaveVisual((FrameworkElement)_settings.Content, name);
+        }
+        void SaveVisual(FrameworkElement visual, string name)
+        {
+            visual.UpdateLayout();
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
                 (int)Math.Ceiling(visual.ActualWidth), (int)Math.Ceiling(visual.ActualHeight),
                 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
