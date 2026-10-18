@@ -178,31 +178,33 @@ public partial class OverlayWindow : Window
     private void ApplyComboVisual()
     {
         var center = StickerCenter();
+
+        // Càng bấm càng TO: +7% mỗi tap, trần 1.85x (trước đây chỉ nhảy cỡ ở mốc Lv2/Lv3)
+        PopSticker(Math.Min(1 + 0.07 * (_activeCount - 1), 1.85));
+
+        // Badge xN hiện từ tap thứ 2
+        ComboBadgeText.Text = "x" + _activeCount;
+        ComboBadge.Visibility = Visibility.Visible;
+
+        // Mỗi 4 tap: đổi sang biến thể KHÁC cùng cảm xúc cho đỡ nhàm
+        if (_activeCount % 4 == 0)
+        {
+            var bmp = _stickers.GetRandom(_activeType);
+            if (bmp != null) ImageBehavior.SetAnimatedSource(StickerImage, bmp);
+        }
+
         if (_activeCount >= 5 && !_lv3Done)
         {
-            // Lv3: BÙNG NỔ CỤC BỘ — sticker lớn + mini sticker chạy nối đuôi ở mép dưới + mưa hạt quanh sticker
+            // Lv3: mini sticker chạy nối đuôi + mưa hạt dày — vẫn chỉ quanh sticker
             _lv3Done = true;
-            ComboBadgeText.Text = "x" + _activeCount;
-            ComboBadge.Visibility = Visibility.Visible;
-            PopSticker(1.45);
             SpawnMiniParade();
             BurstFor(_activeType, center, density: 3);
-            _app.PlayPop(2);
-        }
-        else if (_activeCount >= 3)
-        {
-            // Lv2: sticker to ~1.3x + badge xN + hạt dày hơn
-            ComboBadgeText.Text = "x" + _activeCount;
-            ComboBadge.Visibility = Visibility.Visible;
-            PopSticker(1.3);
-            BurstFor(_activeType, center, density: 2);
-            _app.PlayPop(1);
         }
         else
         {
-            PopSticker(1 + 0.06 * _activeCount);
-            _app.PlayPop(1);
+            BurstFor(_activeType, center, density: _activeCount >= 3 ? 2 : 1);
         }
+        _app.PlayPop(_activeCount); // thang nốt leo theo độ dài combo
     }
 
     private void RestartHideTimer()

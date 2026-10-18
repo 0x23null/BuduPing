@@ -20,9 +20,7 @@
 
   <ItemGroup>
     <!-- pop.wav nhúng vào assembly để phát âm thanh không cần file rời -->
-    <EmbeddedResource Include="Assets\Sounds\pop.wav" />
-    <EmbeddedResource Include="Assets\Sounds\pop2.wav" />
-    <EmbeddedResource Include="Assets\Sounds\pop3.wav" />
+    <EmbeddedResource Include="Assets\Sounds\*.wav" />
     <EmbeddedResource Include="Assets\tray.ico" />
     <!-- Sticker GIF: NHUNG THANG vao exe. Ban v0.1.0 de file roi canh exe nen
          Release chi co 1 file exe -> may nguoi dung khong co GIF -> sticker khong hien. -->

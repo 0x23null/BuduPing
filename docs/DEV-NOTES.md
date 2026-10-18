@@ -90,6 +90,18 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
   `tease` mới có 1 mẫu (`tease-02`); một file cười lớn bị xếp nhầm vào cheer đã chuyển
   về `funny-03`; `cheer-03` là GIF ngang nên nhân vật hơi nhỏ khi hiện.
 
+### v0.1.2 → v0.1.3 (đang làm)
+- User: tiếng pop vẫn không tạo cảm giác spam → **thay toàn bộ engine tiếng**:
+  bỏ SoundPlayer (chỉ 1 tiếng tại một thời điểm, spam là cụt) → `SoundService`
+  với **thang 10 nốt** `pop01..pop10.wav` (cao dần theo độ dài combo), mỗi nốt một
+  `MediaPlayer` riêng nên tiếng **chồng nhau** được; WAV trích ra
+  `%AppData%/BuduPing/sounds` lúc khởi động. `App.PlayPop(comboCount)`.
+- User: combo phải "càng nhấn càng to + đổi biến thể" → mỗi tap +7% kích thước
+  (trần 1.85×), badge xN từ tap 2, **mỗi 4 tap tự đổi sang biến thể khác cùng cảm xúc**.
+- User: quầng sáng chưa cứu được nền tối → đặt **thẻ nền trắng-hồng mờ 95%** sau
+  sticker (kiểu thẻ thông báo) — giải pháp chắc chắn cho mọi wallpaper.
+- User: chữ tin nhắn + badge xN nhỏ → BubbleText 20, header 16, badge 24.
+
 ## 6. Chuẩn nghiệm thu của user (không được phá)
 
 - Mượt kiểu Telegram: bấm là phản hồi ngay, sticker hiện <1s, animation 60fps chỉ dùng

@@ -27,9 +27,9 @@
                         <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.30" Color="#666666"/>
                     </Border.Effect>
                     <StackPanel>
-                        <TextBlock x:Name="BubbleHeader" FontSize="14" FontWeight="Bold"
+                        <TextBlock x:Name="BubbleHeader" FontSize="16" FontWeight="Bold"
                                    Foreground="#D94F70" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="BubbleText" FontSize="17" Foreground="#2B2B2B"
+                        <TextBlock x:Name="BubbleText" FontSize="20" Foreground="#2B2B2B"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
@@ -37,9 +37,21 @@
                       HorizontalAlignment="Center" Margin="0,-1,0,0" Visibility="Collapsed"/>
             </StackPanel>
 
-            <!-- Sticker GIF trong suốt + quầng sáng hồng sau lưng: trên nền desktop tối
-                 sticker viền tối + bóng đổ tối sẽ chìm; quầng sáng này giúp sticker
-                 luôn nổi rõ cả nền sáng lẫn tối -->
+            <!-- Thẻ nền sáng sau sticker: quầng sáng ở v0.1.2 KHÔNG đủ cứu nền desktop
+                 tối (user xác nhận vẫn chìm) → đặt hẳn 1 tấm thẻ trắng-hồng mờ 95% sau
+                 sticker, như thẻ thông báo: nền nào sticker cũng đọc rõ. Quầng sáng
+                 hồng giữ lại bên trong thẻ cho mềm. -->
+            <Border CornerRadius="26" Padding="18,14,18,16" HorizontalAlignment="Center"
+                    BorderBrush="#FFFFCFE0" BorderThickness="1">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#F2FFFFFF" Offset="0"/>
+                        <GradientStop Color="#F2FFF0F6" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="3" Opacity="0.25" Color="#8A5A6E"/>
+                </Border.Effect>
             <Grid HorizontalAlignment="Center">
                 <Ellipse Width="330" Height="330" HorizontalAlignment="Center" VerticalAlignment="Center"
                          IsHitTestVisible="False">
@@ -64,13 +76,14 @@
                         </TransformGroup>
                     </Image.RenderTransform>
                 </Image>
-                <Border x:Name="ComboBadge" Background="#FF5C8A" CornerRadius="14" Padding="10,4"
+                <Border x:Name="ComboBadge" Background="#FF5C8A" CornerRadius="16" Padding="13,5"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,2,0"
                         Visibility="Collapsed">
-                    <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="19"
+                    <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="24"
                                FontWeight="Bold" Foreground="White"/>
                 </Border>
             </Grid>
+            </Border>
             <Rectangle Height="10" Fill="Transparent"/>
         </StackPanel>
     </Grid>
