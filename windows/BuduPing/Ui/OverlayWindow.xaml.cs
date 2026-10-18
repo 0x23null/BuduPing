@@ -46,6 +46,7 @@ public partial class OverlayWindow : Window
     private bool _peeking;
     private int _generation;
     private int _expiredCount;
+    internal Point LastBurstCenter { get; private set; }
     public PingEvent? LastPing { get; private set; }
     public int PendingCount => _queue.Count;
     private readonly DispatcherTimer _hideTimer;
@@ -119,7 +120,7 @@ public partial class OverlayWindow : Window
         ContentPanel.VerticalAlignment = _app.Config.Corner.StartsWith("Top", StringComparison.Ordinal)
             ? VerticalAlignment.Top : VerticalAlignment.Bottom;
         Root.LayoutTransform = new ScaleTransform(_app.Config.OverlayScale, _app.Config.OverlayScale);
-        Width = 380 * _app.Config.OverlayScale;
+        Width = 520 * _app.Config.OverlayScale;
         Height = 580 * _app.Config.OverlayScale;
         DisplayPlacement.Place(this, _app.Config.MonitorDevice, _app.Config.Corner, _app.Config.OverlayScale);
     }
@@ -248,7 +249,16 @@ public partial class OverlayWindow : Window
         PlayEntrance();
         if (!peek)
         {
-            if (!_app.Config.ReducedMotion) { ApplyMoodPose(ping.Type); BurstFor(ping.Type, StickerCenter(), 1); }
+            if (!_app.Config.ReducedMotion)
+            {
+                int generation = _generation;
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (generation != _generation || _peeking || _app.Config.ReducedMotion) return;
+                    ApplyMoodPose(ping.Type);
+                    BurstFor(ping.Type, StickerCenter(), 1);
+                }, DispatcherPriority.Loaded);
+            }
             _app.PlayPop();
             // One callback after composition starts, not when the event merely enters a queue.
             EventHandler? rendered = null;
@@ -442,13 +452,15 @@ public partial class OverlayWindow : Window
 
     private Point StickerCenter()
     {
-        try
+        // Layout coordinates stay stable while the entrance scales/slides the content.
+        var point = new Point(132, 110);
+        for (Visual? visual = StickerStage; visual != null && !ReferenceEquals(visual, Root);
+             visual = VisualTreeHelper.GetParent(visual) as Visual)
         {
-            var p = StickerStage.TranslatePoint(new Point(132, 110), Root);
-            if (!double.IsNaN(p.X) && !double.IsInfinity(p.X)) return p;
+            var offset = VisualTreeHelper.GetOffset(visual);
+            point.Offset(offset.X, offset.Y);
         }
-        catch { }
-        return new Point(Width / 2, Height - 140);
+        return point;
     }
 
     // ================= Hạt cục bộ (pool 24) =================
@@ -548,6 +560,7 @@ public partial class OverlayWindow : Window
 
     private void BurstFor(string type, Point c, int density)
     {
+        LastBurstCenter = c;
         var kind = StickerService.ParticleKindFor(type);
         switch (kind)
         {

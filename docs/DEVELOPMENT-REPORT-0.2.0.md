@@ -1,7 +1,7 @@
 # BuduPing 0.2.0 — implementation and handoff
 
 Date: 2026-10-19 (Asia/Bangkok). Baseline: released v0.1.2 (`390791b`).
-Work branch: `codex/buduping-0.2`. Status: implementation under CI validation; not a claim of device-tested performance.
+Work branch: `codex/buduping-0.2`. Status: implementation complete; final native visual checks and preview publishing in progress. Device performance is not yet measured.
 
 ## User direction
 
@@ -16,7 +16,7 @@ Work branch: `codex/buduping-0.2`. Status: implementation under CI validation; n
 ### Delivery and interaction
 
 - `PingBacklog` keeps at most two waiting ambient taps and 64 total events. Ambient taps cannot evict text. Overflow stays in the Firebase inbox; an event-driven refresh retries it when the queue drains. There is no periodic inbox polling.
-- Text-bearing events and explicit variants never merge into ambient combos. Accepted messages retain order.
+- Text-bearing events never merge into ambient combos; an incoming explicit variant starts its own display. Accepted messages retain order.
 - PC acknowledges only after entering a composition frame. An atomic multi-location PATCH writes `feedback/delivery` and removes `inbox/{pushKey}`. Retries are serialized with backoff. A process crash before completion can cause replay; exactly-once delivery is not claimed.
 - Ambient events expire after 10 minutes; text after 24 hours. Old events receive `expired`; a small local summary replaces an old burst.
 - Ctrl+Alt+Space or a tray/settings action sends one hug back. Registration failure is visible in settings; tray reply remains available. Android shows the returning hug and two short vibrations while foregrounded. No background push notification service was added.
@@ -75,7 +75,12 @@ Presence stays `{online:true,ts:<server timestamp>}`. Android locally ages it ag
 - Local full dotnet CLI/MSBuild is unavailable due to this container's process metadata restrictions; direct Roslyn compiled and ran the core checks. Full native builds are validated by GitHub Actions. The APK and EXE passed at `7cf2cb4`, `c7f39bf` and `1a26d02`; subsequent changes are checked again.
 - Native Windows settings screenshots rendered successfully at `1a26d02` (run `39154366713`). The offline `--ui-review` mode never loads personal config or connects to Firebase.
 - Initial Windows CI exposed MSYS converting `/p:` arguments; changed to `-p:`. SDK is pinned to .NET 8 via global.json.
-- CI outcomes and exact SHAs will be added after final validation. Read the matching SHA in ci-reports before interpreting a report, since other agents also push builds.
+- Android UI run [39155260760](https://github.com/0x23null/BuduPing/actions/runs/39155260760) at `956afaf` passed all four instrumented tests and collected five PNGs: light 360dp, dark 412dp, 320dp at font scale 1.3, setup and variant picker. These use offline UI fixtures, not a live pair.
+- Native Windows run [39155728548](https://github.com/0x23null/BuduPing/actions/runs/39155728548) at `e2a0ba4` passed build/core/asset checks and captured settings plus message/peak-combo overlays.
+- Visual review caught and fixed the friendly monitor label/template, missing screenshot background, default grid's partly clipped last row, oversized empty composer at large font, and first-burst particle coordinates before layout. The love tile now prefers love-02 over the caption-heavy love-01 preview; original GIFs remain unchanged.
+- Peak-combo screenshots exposed clipping with the preserved 1.85x growth. The transparent host is now 520 DIP wide and character growth anchors at the feet; monitor placement uses the actual window dimensions. First-burst particles wait for layout and use stable layout coordinates rather than animated transforms.
+- WPF entrance snapshots also exposed transforms remaining near their starting scale. Entrance/exit/combo now animate the live transform objects directly instead of targeting Freezables through a Storyboard. Review exports geometry/scale diagnostics and asserts the entrance settles to scale 1 and slide 0. Final checks run again after these fixes.
+- Read the matching SHA in ci-reports before interpreting a report, since other agents also push builds.
 
 ## Device verification still required
 
@@ -85,7 +90,7 @@ Presence stays `{online:true,ts:<server timestamp>}`. Android locally ages it ag
 4. Multiple monitors at 100/150/200% DPI, all corners, non-default taskbar position.
 5. Cold-start/idle/post-spam private bytes and latency with diagnostics; verify no idle animation continues.
 6. Hotkey conflict, mute, autostart, tray lifecycle and switching pair while events arrive.
-7. TalkBack, large fonts, keyboard visibility and 320/360/412 dp Android widths; screenshots and screen-reader checks have not been run in this Linux container.
+7. TalkBack and keyboard visibility on real phones. Emulator screenshots cover 320/360/412 dp and font scale 1.3; they do not establish TalkBack behavior or every screen size.
 
 ## Remaining ideas, not shipped claims
 

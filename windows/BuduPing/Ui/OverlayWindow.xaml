@@ -2,11 +2,11 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="BuduPing Overlay"
-        Width="380" Height="580"
+        Width="520" Height="580"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
         Visibility="Collapsed">
-    <Grid x:Name="Root" Width="380" Height="580" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+    <Grid x:Name="Root" Width="520" Height="580" HorizontalAlignment="Center" VerticalAlignment="Bottom">
         <!-- Lớp hạt: vẽ sau (dưới) sticker nhưng vẫn trong cửa sổ overlay -->
         <Canvas x:Name="ParticleCanvas" IsHitTestVisible="False"/>
 
@@ -65,7 +65,7 @@
                         </RadialGradientBrush>
                     </Ellipse.Fill>
                 </Ellipse>
-                <Grid x:Name="StickerStage" Width="264" Height="264" RenderTransformOrigin="0.5,0.5">
+                <Grid x:Name="StickerStage" Width="264" Height="264" RenderTransformOrigin="0.5,1">
                     <Grid.RenderTransform><TransformGroup>
                         <ScaleTransform x:Name="StickerScale" ScaleX="1" ScaleY="1"/>
                         <TranslateTransform x:Name="StickerShake"/>
