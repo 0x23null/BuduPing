@@ -1,6 +1,6 @@
 # CI report: release-publish
-- status: failure
+- status: success
 - workflow: Release (BuduPing)
-- run: 39155775692/6
-- sha: 229e674012d1e8cb13640e8ba03fd40ddc2629ec
-- time: 2026-10-18T18:51:40Z
+- run: 39156470515/7
+- sha: c3c112e40b6e07a50645b6e28e4012b02e08b6cb
+- time: 2026-10-18T18:58:57Z
