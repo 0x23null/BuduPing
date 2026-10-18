@@ -6,9 +6,10 @@ on:
       - 'android/**'
       - 'tools/prepare_assets.py'
       - '.github/workflows/ui-review.yml'
+      - '.github/scripts/run-ui-review.sh'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   screenshots:
     runs-on: ubuntu-latest
@@ -39,7 +40,7 @@ jobs:
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: cd android && chmod +x ./gradlew && (./gradlew connectedDebugAndroidTest --no-daemon; BUDU_TEST_STATUS=$?; adb pull /sdcard/Android/data/com.buduping.app/files/ui ../ui-screenshots || true; exit "$BUDU_TEST_STATUS")
+          script: bash .github/scripts/run-ui-review.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -47,3 +48,6 @@ jobs:
           path: |
             ui-screenshots
             android/app/build/reports/androidTests
+      - name: Report native UI result
+        if: always()
+        run: bash .github/scripts/report-ci.sh ui-review "${{ job.status }}" "$RUNNER_TEMP/ui-review.log"

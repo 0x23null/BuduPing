@@ -97,10 +97,11 @@ public partial class App : Application
         void SaveWindow(string name)
         {
             _settings.UpdateLayout();
+            var visual = (FrameworkElement)_settings.Content;
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
-                (int)Math.Ceiling(_settings.ActualWidth), (int)Math.Ceiling(_settings.ActualHeight),
+                (int)Math.Ceiling(visual.ActualWidth), (int)Math.Ceiling(visual.ActualHeight),
                 96, 96, System.Windows.Media.PixelFormats.Pbgra32);
-            bitmap.Render(_settings);
+            bitmap.Render(visual);
             var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
             encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
             using var output = File.Create(Path.Combine(directory, name)); encoder.Save(output);

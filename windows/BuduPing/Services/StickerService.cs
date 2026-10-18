@@ -101,6 +101,7 @@ public sealed class StickerService
     }
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
+    private readonly Dictionary<string, int> _pins = new(StringComparer.Ordinal);
     private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
 
     public StickerService(string stickersRoot) => _root = stickersRoot;
@@ -181,6 +182,7 @@ public sealed class StickerService
         }
         _decoded.Clear();
         _decodedOrder.Clear();
+        _pins.Clear();
         _lastShownKey = "";
         LastInfo = null;
     }
@@ -207,16 +209,37 @@ public sealed class StickerService
             _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp, Cost = cost };
             _decodedOrder.Enqueue(src.Key);
             _lastShownKey = src.Key;
-            while (_decoded.Count > 1 && (_decoded.Count > MaxDecoded || DecodedBytes > MaxDecodedBytes))
-            {
-                string oldest = _decodedOrder.Dequeue();
-                if (oldest == _lastShownKey) continue; // đang hiện → giữ stream sống
-                if (_decoded.Remove(oldest, out var evicted))
-                    evicted.Stream.Dispose();
-            }
+            TrimDecoded();
             return bmp;
         }
         catch { return null; }
+    }
+
+    public void Pin(BitmapImage image)
+    {
+        var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
+        if (entry.Key != null) _pins[entry.Key] = _pins.GetValueOrDefault(entry.Key) + 1;
+    }
+
+    public void Unpin(BitmapImage image)
+    {
+        var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
+        if (entry.Key != null && _pins.TryGetValue(entry.Key, out int count))
+        {
+            if (count <= 1) _pins.Remove(entry.Key); else _pins[entry.Key] = count - 1;
+        }
+        TrimDecoded();
+    }
+
+    private void TrimDecoded()
+    {
+        int attempts = _decodedOrder.Count;
+        while (_decoded.Count > 1 && (_decoded.Count > MaxDecoded || DecodedBytes > MaxDecodedBytes) && attempts-- > 0)
+        {
+            string oldest = _decodedOrder.Dequeue();
+            if (oldest == _lastShownKey || _pins.ContainsKey(oldest)) { _decodedOrder.Enqueue(oldest); continue; }
+            if (_decoded.Remove(oldest, out var evicted)) evicted.Stream.Dispose();
+        }
     }
 
     /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>

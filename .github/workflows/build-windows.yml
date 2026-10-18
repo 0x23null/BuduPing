@@ -8,6 +8,7 @@ on:
       - '.github/scripts/report-ci.sh'
       - 'tools/**'
       - 'tests/**'
+      - 'global.json'
   workflow_dispatch:
 
 permissions:
