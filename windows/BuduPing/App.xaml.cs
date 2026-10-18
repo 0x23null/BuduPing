@@ -28,7 +28,13 @@ public partial class App : Application
     private SoundPlayer? _popPlayer;
     private SoundPlayer? _popPlayer2; // combo Lv2: pop cao hơn, nhanh hơn
     private SoundPlayer? _popPlayer3; // combo Lv3: pop cao nhất + lấp lánh
-    private System.Threading.Timer? _presenceTimer;
+    private CancellationTokenSource? _presenceCts;
+    private ReplyHotkey? _hotkey;
+    private MenuItem? _discreetMenu;
+    private bool _replying;
+    private DateTime _lastReply = DateTime.MinValue;
+    public bool IsExiting => _exiting;
+    public bool HotkeyAvailable => _hotkey?.Registered == true;
     private readonly Random _rng = new();
     private bool _exiting;
 
@@ -47,14 +53,16 @@ public partial class App : Application
         LoadPopSound();
 
         _overlay = new OverlayWindow(_stickers, this);
-        _settings = new SettingsWindow(this);
+
 
         SetupTray();
         StartSync(Config.PairCode);
         StartPresence();
 
-        // Khởi động xong vài giây → nhả RAM thừa, app về trạng thái nền nhẹ
-        _ = Task.Delay(TimeSpan.FromSeconds(6)).ContinueWith(_ => MemoryTrim.Request());
+        _hotkey = new ReplyHotkey();
+        _hotkey.Pressed += () => _ = ReplyToLastAsync();
+        MemoryTrim.Record("startup", _stickers.DecodedBytes);
+        if (!Config.HasSeenSetup) { OpenSettings(); Config.HasSeenSetup = true; AppConfigStore.Save(Config); }
     }
 
     // ================= Tray =================
@@ -88,6 +96,13 @@ public partial class App : Application
 
         menu.Items.Add(open);
         menu.Items.Add(_soundMenuItem);
+        _discreetMenu = new MenuItem { Header = "Chế độ kín đáo", IsCheckable = true, IsChecked = Config.DiscreetMode };
+        _discreetMenu.Click += (_, _) => SetDiscreet(_discreetMenu.IsChecked);
+        var reply = new MenuItem { Header = "Gửi ôm đáp lại (Ctrl+Alt+Space)" };
+        reply.Click += (_, _) => _ = ReplyToLastAsync();
+        var pending = new MenuItem { Header = "Mở xem các lời nhắn đang chờ" };
+        pending.Click += (_, _) => OpenPending();
+        menu.Items.Add(_discreetMenu); menu.Items.Add(reply); menu.Items.Add(pending);
         menu.Items.Add(new Separator());
         menu.Items.Add(quit);
         _tray.ContextMenu = menu;
@@ -101,7 +116,7 @@ public partial class App : Application
 
     public void OpenSettings()
     {
-        if (_settings == null) return;
+        _settings ??= new SettingsWindow(this);
         _settings.RefreshUi();
         _settings.Show();
         _settings.Activate();
@@ -126,16 +141,65 @@ public partial class App : Application
 
     private void StartPresence()
     {
-        // Heartbeat mỗi 20s → điện thoại hiện chấm xanh khi desktop còn sống (kể cả chạy tray)
-        _presenceTimer = new System.Threading.Timer(
-            _ => { try { _sync?.PutPresenceAsync().GetAwaiter().GetResult(); } catch { } },
-            null, TimeSpan.Zero, TimeSpan.FromSeconds(20));
+        _presenceCts = new CancellationTokenSource();
+        _ = PresenceLoopAsync(_presenceCts.Token);
     }
 
-    public void DeleteFromInbox(string eventId) => _sync?.DeleteFromInbox(eventId);
+    private async Task PresenceLoopAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(20));
+        try
+        {
+            do { if (_sync != null) await _sync.PutPresenceAsync(ct); }
+            while (await timer.WaitForNextTickAsync(ct));
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public void CompletePing(PingEvent ping, string status) => _sync?.Complete(ping, status);
+    public void DeferPing(PingEvent ping) { if (!ping.IsLocal) _sync?.Defer(ping.Id); }
+    public void RefreshDeferred() { if (_sync != null) _ = _sync.RefreshDeferredAsync(); }
+
+    public void SetDiscreet(bool on)
+    {
+        Config.DiscreetMode = on; AppConfigStore.Save(Config);
+        if (_discreetMenu != null) _discreetMenu.IsChecked = on;
+        _overlay?.ApplyPreferences();
+        if (!on) _overlay?.ShowPending();
+        _settings?.RefreshUi();
+    }
+
+    public void OpenPending()
+    {
+        Config.HideMessageText = false;
+        SetDiscreet(false);
+    }
+
+    public void ApplyPreferences()
+    {
+        AppConfigStore.Save(Config);
+        _overlay?.ApplyPreferences();
+    }
+
+    public async Task ReplyToLastAsync()
+    {
+        var ping = _overlay?.LastPing;
+        if (_replying || ping == null || _sync == null || (DateTime.UtcNow - _lastReply).TotalSeconds < 1) return;
+        _replying = true;
+        bool sent = await _sync.ReplyAsync(ping);
+        _replying = false;
+        if (sent)
+        {
+            _lastReply = DateTime.UtcNow;
+            _overlay?.ShowPing(new PingEvent { Type = "hug", Text = "Đã gửi một cái ôm đáp lại.", IsLocal = true });
+        }
+        else _tray?.ShowBalloonTip("BuduPing", "Chưa gửi được cái ôm. Thử lại khi có mạng nhé.", BalloonIcon.Warning);
+    }
 
     public void RegeneratePairCode()
     {
+        if (_sync != null) _ = _sync.DeletePresenceAsync();
+        _overlay?.ResetPair();
         Config.PairCode = PairCode.Generate();
         AppConfigStore.Save(Config);
         StartSync(Config.PairCode); // mã mới → inbox mới, mã cũ mất hiệu lực
@@ -203,6 +267,7 @@ public partial class App : Application
             : new[] { "love", "miss", "hug", "angry", "cheer", "funny" };
         var ping = new PingEvent
         {
+            IsLocal = true,
             Type = types[_rng.Next(types.Length)],
             Text = "Sticker test nè 💌",
             From = "Tester",
@@ -218,7 +283,8 @@ public partial class App : Application
         _exiting = true;
         try
         {
-            _presenceTimer?.Dispose();
+            _presenceCts?.Cancel();
+            _hotkey?.Dispose();
             _sync?.Stop();
             if (_sync != null) await _sync.DeletePresenceAsync(); // chấm xám trên điện thoại
         }

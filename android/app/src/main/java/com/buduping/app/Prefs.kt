@@ -20,7 +20,21 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_PAIR, "") ?: ""
         set(value) = sp.edit().putString(KEY_PAIR, value).apply()
 
+    var pendingKey: String
+        get() = sp.getString("pending_key", "") ?: ""
+        set(value) = sp.edit().putString("pending_key", value).apply()
+    var deliveryStatus: String
+        get() = sp.getString("delivery_status", "") ?: ""
+        set(value) = sp.edit().putString("delivery_status", value).apply()
+    var lastReplyId: String
+        get() = sp.getString("reply_" + pairId, "") ?: ""
+        set(value) = sp.edit().putString("reply_" + pairId, value).apply()
+    var favorites: List<String>
+        get() = (sp.getString("favorites", "hug,love,miss,kiss") ?: "").split(',').filter { it.isNotBlank() }
+        set(value) = sp.edit().putString("favorites", value.distinct().take(4).joinToString(",")).apply()
+
     fun clearPair() {
+        pendingKey = ""; deliveryStatus = ""
         sp.edit().remove(KEY_PAIR).apply()
     }
 

@@ -6,6 +6,8 @@ on:
       - 'windows/**'
       - '.github/workflows/build-windows.yml'
       - '.github/scripts/report-ci.sh'
+      - 'tools/**'
+      - 'tests/**'
   workflow_dispatch:
 
 permissions:
@@ -20,26 +22,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare shared sticker catalog and thumbnails
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pip install -r tools/requirements-assets.txt
+          python tools/prepare_assets.py
+          python -m unittest discover -s tests/assets -v
+
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Verify delivery queue and pairing contract
+        run: dotnet run --project ../../tests/BuduPing.CoreChecks -c Release
 
       - name: Restore
         run: dotnet restore
 
       - name: Publish single-file exe
         id: publish
-        run: >
-          dotnet publish -c Release -r win-x64 --self-contained true
-          /p:PublishSingleFile=true
-          /p:IncludeNativeLibrariesForSelfExtract=true
-          -o publish
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true -o publish 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: Report CI result
         if: always()
         shell: bash
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ steps.publish.outcome }}" ""
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ job.status }}" "$RUNNER_TEMP/build.log"
 
       - name: Upload BuduPing.exe
         uses: actions/upload-artifact@v4

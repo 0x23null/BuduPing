@@ -11,6 +11,13 @@ public sealed class AppConfig
     public string PairCode { get; set; } = "";
     public bool SoundOn { get; set; } = true;
     public bool Autostart { get; set; } = false;
+    public bool HasSeenSetup { get; set; }
+    public bool DiscreetMode { get; set; }
+    public bool HideMessageText { get; set; }
+    public bool ReducedMotion { get; set; }
+    public string MonitorDevice { get; set; } = "";
+    public string Corner { get; set; } = "BottomRight";
+    public double OverlayScale { get; set; } = 1.0;
 }
 
 public static class AppConfigStore
@@ -29,7 +36,11 @@ public static class AppConfigStore
             if (File.Exists(Path_))
             {
                 var cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(Path_));
-                if (cfg != null && PairCode.IsValid(cfg.PairCode)) return cfg;
+                if (cfg != null && PairCode.IsValid(cfg.PairCode))
+                {
+                    cfg.OverlayScale = double.IsFinite(cfg.OverlayScale) ? Math.Clamp(cfg.OverlayScale, 0.75, 1.25) : 1;
+                    return cfg;
+                }
             }
         }
         catch { /* file hỏng → gen lại */ }

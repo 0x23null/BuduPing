@@ -72,7 +72,7 @@ fun SettingsDialog(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    "BuduPing 0.1.0 — ping yêu thương 💌",
+                    "BuduPing 0.2.0",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

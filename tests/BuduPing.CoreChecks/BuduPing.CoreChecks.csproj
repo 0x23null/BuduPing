@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../windows/BuduPing/Core/PingEvent.cs" Link="PingEvent.cs" />
+    <Compile Include="../../windows/BuduPing/Core/PingBacklog.cs" Link="PingBacklog.cs" />
+    <Compile Include="../../windows/BuduPing/Core/PairCode.cs" Link="PairCode.cs" />
+  </ItemGroup>
+</Project>

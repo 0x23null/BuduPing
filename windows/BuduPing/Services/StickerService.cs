@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using System.Windows;
 using System.Windows.Media.Imaging;
 
 namespace BuduPing.Services;
@@ -70,7 +72,8 @@ public sealed class StickerService
 
     private sealed class GifSource
     {
-        public string Key = "";              // định danh duy nhất (tên resource / đường dẫn)
+        public string Key = "";
+        public string Variant = "";              // định danh duy nhất (tên resource / đường dẫn)
         public byte[] Bytes = Array.Empty<byte>(); // GIF nén — giữ trong RAM rất nhẹ
     }
 
@@ -79,9 +82,23 @@ public sealed class StickerService
     {
         public MemoryStream Stream = null!;
         public BitmapImage Image = null!;
+        public long Cost;
     }
 
     private const int MaxDecoded = 6;
+    private const long MaxDecodedBytes = 32L * 1024 * 1024;
+    private readonly Dictionary<string, StickerInfo> _catalog = new();
+    public StickerInfo? LastInfo { get; private set; }
+    public long DecodedBytes => _decoded.Values.Sum(x => x.Cost);
+
+    public sealed class StickerInfo
+    {
+        public string id { get; set; } = "";
+        public int width { get; set; }
+        public int height { get; set; }
+        public int[] bounds { get; set; } = Array.Empty<int>();
+        public long estimatedBytes { get; set; }
+    }
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
     private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
@@ -94,6 +111,15 @@ public sealed class StickerService
     public void Preload()
     {
         _byType.Clear();
+        _catalog.Clear();
+        try
+        {
+            using var catalog = typeof(StickerService).Assembly.GetManifestResourceStream("BuduPing.Assets.Stickers.catalog.json");
+            if (catalog != null)
+                foreach (var info in JsonSerializer.Deserialize<List<StickerInfo>>(catalog) ?? new())
+                    _catalog[info.id] = info;
+        }
+        catch { }
 
         // 1) GIF nhúng trong exe: BuduPing.Assets.Stickers.<type>.<file>.gif
         try
@@ -141,7 +167,9 @@ public sealed class StickerService
             list = new List<GifSource>();
             _byType[type] = list;
         }
-        list.Add(new GifSource { Key = key, Bytes = bytes });
+        string variant = key.StartsWith("file:", StringComparison.Ordinal)
+            ? Path.GetFileNameWithoutExtension(key[5..]) : key.Split('.')[^2];
+        list.Add(new GifSource { Key = key, Variant = variant, Bytes = bytes });
     }
 
     /// <summary>Nhả toàn bộ GIF đã decode (gọi sau khi overlay ẩn hẳn để trả RAM về idle).</summary>
@@ -154,11 +182,13 @@ public sealed class StickerService
         _decoded.Clear();
         _decodedOrder.Clear();
         _lastShownKey = "";
+        LastInfo = null;
     }
 
     /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>
     private BitmapImage? Decode(GifSource src)
     {
+        LastInfo = _catalog.GetValueOrDefault(src.Variant);
         if (_decoded.TryGetValue(src.Key, out var hit))
         {
             _lastShownKey = src.Key;
@@ -173,10 +203,11 @@ public sealed class StickerService
             bmp.StreamSource = stream;
             bmp.EndInit();
             bmp.Freeze();
-            _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp };
+            long cost = LastInfo?.estimatedBytes ?? (long)bmp.PixelWidth * bmp.PixelHeight * 4 * 30;
+            _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp, Cost = cost };
             _decodedOrder.Enqueue(src.Key);
             _lastShownKey = src.Key;
-            while (_decoded.Count > MaxDecoded)
+            while (_decoded.Count > 1 && (_decoded.Count > MaxDecoded || DecodedBytes > MaxDecodedBytes))
             {
                 string oldest = _decodedOrder.Dequeue();
                 if (oldest == _lastShownKey) continue; // đang hiện → giữ stream sống
@@ -189,7 +220,7 @@ public sealed class StickerService
     }
 
     /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>
-    public BitmapImage? GetRandom(string type)
+    public BitmapImage? GetRandom(string type, string variant = "")
     {
         if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0)
         {
@@ -198,6 +229,11 @@ public sealed class StickerService
             return any == null ? null : Decode(any[_rng.Next(any.Count)]);
         }
 
+        if (!string.IsNullOrEmpty(variant))
+        {
+            var chosen = list.FirstOrDefault(x => string.Equals(x.Variant, variant, StringComparison.Ordinal));
+            if (chosen != null) return Decode(chosen);
+        }
         if (!_recent.TryGetValue(type!, out var recent))
         {
             recent = new Queue<int>(2);

@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <Version>0.2.0</Version>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>BuduPing</AssemblyName>
     <RootNamespace>BuduPing</RootNamespace>
     <ApplicationIcon>Assets\tray.ico</ApplicationIcon>
@@ -27,6 +29,7 @@
     <!-- Sticker GIF: NHUNG THANG vao exe. Ban v0.1.0 de file roi canh exe nen
          Release chi co 1 file exe -> may nguoi dung khong co GIF -> sticker khong hien. -->
     <EmbeddedResource Include="Assets\Stickers\**\*.gif" />
+    <EmbeddedResource Include="Assets\Stickers\catalog.json" Condition="Exists('Assets\Stickers\catalog.json')" />
     <None Include="Assets\Stickers\.gitkeep" />
   </ItemGroup>
 

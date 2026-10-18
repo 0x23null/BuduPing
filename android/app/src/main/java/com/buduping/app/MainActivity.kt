@@ -13,6 +13,9 @@ import com.buduping.app.ui.NameScreen
 import com.buduping.app.ui.PairScreen
 
 class MainActivity : ComponentActivity() {
+    private var foreground by mutableStateOf(false)
+    override fun onStart() { super.onStart(); foreground = true }
+    override fun onStop() { foreground = false; super.onStop() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +43,7 @@ class MainActivity : ComponentActivity() {
                     Screen.Home -> HomeScreen(
                         prefs = prefs,
                         repo = repo,
+                        isForeground = foreground,
                         onUnpair = {
                             prefs.clearPair()
                             screen = Screen.Pair

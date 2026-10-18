@@ -6,7 +6,7 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
         Visibility="Collapsed">
-    <Grid x:Name="Root">
+    <Grid x:Name="Root" Width="380" Height="580" HorizontalAlignment="Center" VerticalAlignment="Bottom">
         <!-- Lớp hạt: vẽ sau (dưới) sticker nhưng vẫn trong cửa sổ overlay -->
         <Canvas x:Name="ParticleCanvas" IsHitTestVisible="False"/>
 
@@ -28,7 +28,7 @@
                     </Border.Effect>
                     <StackPanel>
                         <TextBlock x:Name="BubbleHeader" FontSize="14" FontWeight="Bold"
-                                   Foreground="#D94F70" TextTrimming="CharacterEllipsis"/>
+                                   Foreground="#A93F65" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="BubbleText" FontSize="17" Foreground="#2B2B2B"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
@@ -51,20 +51,23 @@
                         </RadialGradientBrush>
                     </Ellipse.Fill>
                 </Ellipse>
-                <Image x:Name="StickerImage" Width="264" Height="264" Stretch="Uniform"
+                <Grid x:Name="StickerStage" Width="264" Height="264" RenderTransformOrigin="0.5,0.5">
+                    <Grid.RenderTransform><TransformGroup>
+                        <ScaleTransform x:Name="StickerScale" ScaleX="1" ScaleY="1"/>
+                        <TranslateTransform x:Name="StickerShake"/>
+                        <RotateTransform x:Name="StickerTilt"/>
+                    </TransformGroup></Grid.RenderTransform>
+                    <Canvas Width="264" Height="264" ClipToBounds="True">
+                <Image x:Name="StickerImage" Width="264" Height="264" Stretch="Fill"
                        RenderOptions.BitmapScalingMode="HighQuality"
                        RenderTransformOrigin="0.5,0.5">
                     <Image.Effect>
                         <DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.5" Color="#FF9EC7"/>
                     </Image.Effect>
-                    <Image.RenderTransform>
-                        <TransformGroup>
-                            <ScaleTransform x:Name="StickerScale" ScaleX="1" ScaleY="1"/>
-                            <TranslateTransform x:Name="StickerShake"/>
-                        </TransformGroup>
-                    </Image.RenderTransform>
                 </Image>
-                <Border x:Name="ComboBadge" Background="#FF5C8A" CornerRadius="14" Padding="10,4"
+                    </Canvas>
+                </Grid>
+                <Border x:Name="ComboBadge" Background="#A93F65" CornerRadius="14" Padding="10,4"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,2,0"
                         Visibility="Collapsed">
                     <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="19"
