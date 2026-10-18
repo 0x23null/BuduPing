@@ -71,6 +71,8 @@ jobs:
       - name: Report CI result
         if: always()
         shell: bash
+        env:
+          CI_UI_DIR: ${{ runner.temp }}/buduping-ui
         run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ job.status }}" "$RUNNER_TEMP/build.log"
 
       - name: Upload BuduPing.exe

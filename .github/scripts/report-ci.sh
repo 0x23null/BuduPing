@@ -44,6 +44,15 @@ for attempt in 1 2 3 4 5; do
   fi
   mkdir -p "$WS/.ci-wt/reports"
   cp "$OUT" "$WS/.ci-wt/reports/$NAME.md"
+  # Optional: UI-review screenshots (CI_UI_DIR) ride along so they can be
+  # eyeballed over plain git, not only as Actions artifacts.
+  if [ -n "${CI_UI_DIR:-}" ] && [ -d "$CI_UI_DIR" ]; then
+    mkdir -p "$WS/.ci-wt/reports/ui-$NAME"
+    for f in "$CI_UI_DIR"/*.png; do
+      [ -f "$f" ] && cp "$f" "$WS/.ci-wt/reports/ui-$NAME/" 2>/dev/null || true
+    done
+    git add "reports/ui-$NAME" || true
+  fi
   cd "$WS/.ci-wt" || break
   git add "reports/$NAME.md" || true
   if git commit -m "ci-report: $NAME $STATUS run ${GITHUB_RUN_NUMBER:-?}" >/dev/null 2>&1; then
