@@ -146,9 +146,13 @@ public sealed class FirebaseSync : IDisposable
     {
         try
         {
-            string id = el.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
-                ? idEl.GetString() ?? fallbackId
-                : fallbackId;
+            // Id chuẩn để dedupe + xoá inbox PHẢI là Firebase push key (fallbackId:
+            // prop.Name của snapshot / đuôi path của put) — KHÔNG dùng field "id" (UUID)
+            // bên trong body, vì DELETE /inbox/{uuid} không trúng node nào cả.
+            string innerId = el.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
+                ? idEl.GetString() ?? ""
+                : "";
+            string id = !string.IsNullOrEmpty(fallbackId) ? fallbackId : innerId;
             if (string.IsNullOrEmpty(id)) return;
 
             lock (_seen)

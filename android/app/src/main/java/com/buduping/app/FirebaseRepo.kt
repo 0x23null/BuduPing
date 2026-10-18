@@ -41,15 +41,16 @@ class FirebaseRepo {
 
     /**
      * Observe /pairs/{pairId}/presence.
-     * The desktop app writes {online, lastSeen} and heartbeats it.
-     * Online = lastSeen within the last 60 seconds (desktop running, tray included).
+     * The desktop app writes {online: true, ts: <epoch ms>} and heartbeats it every ~20s.
+     * Online = online flag set AND ts fresh within 60 seconds (desktop running, tray included).
      */
     fun observePresence(pairId: String, onChange: (online: Boolean) -> Unit): ValueEventListener {
         val ref = db.getReference("pairs").child(pairId).child("presence")
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val lastSeen = snapshot.child("lastSeen").getValue(Long::class.java) ?: 0L
-                onChange(System.currentTimeMillis() - lastSeen < PRESENCE_FRESH_MS)
+                val onlineFlag = snapshot.child("online").getValue(Boolean::class.java) ?: false
+                val ts = snapshot.child("ts").getValue(Long::class.java) ?: 0L
+                onChange(onlineFlag && System.currentTimeMillis() - ts < PRESENCE_FRESH_MS)
             }
 
             override fun onCancelled(error: DatabaseError) {

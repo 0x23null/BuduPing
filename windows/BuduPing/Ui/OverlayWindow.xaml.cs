@@ -28,10 +28,11 @@ public partial class OverlayWindow : Window
     private const int WS_EX_TOOLWINDOW = 0x80;
     #endregion
 
-    private const int MaxQueue = 3;
+    private const int MaxQueue = 2;
     private const int MaxParticles = 24;   // pool hạt cố định
-    private const double ComboWindowSec = 1.5;
-    private const double ShowSeconds = 5.0;
+    private const double ComboWindowSec = 2.0;  // tính từ lần chạm GẦN NHẤT (v0.1.0 tính từ lúc bắt đầu hiện → spam là kẹt hàng đợi)
+    private const double InterruptAfterSec = 1.0; // khác cảm xúc mà cái đang hiện đã chiếu quá 1s → nhường chỗ ngay
+    private const double ShowSeconds = 2.8;     // v0.1.0 để 5s → spam sticker phải chờ nhau rất lâu
 
     private readonly StickerService _stickers;
     private readonly App _app;
@@ -44,6 +45,7 @@ public partial class OverlayWindow : Window
     private string _activeType = "";
     private int _activeCount;
     private DateTime _windowStartUtc;
+    private DateTime _lastTapUtc;
     private bool _lv3Done;
 
     // Pool hạt: animate 1 vòng CompositionTarget.Rendering, hết hạt thì unsubscribe → idle 0% CPU
@@ -99,14 +101,24 @@ public partial class OverlayWindow : Window
         _app.DeleteFromInbox(ping.Id); // đã nhận → xoá khỏi inbox, reconnect không hiện lại
 
         var now = DateTime.UtcNow;
-        if (_isShowing && !_isHiding &&
-            string.Equals(ping.Type, _activeType, StringComparison.OrdinalIgnoreCase) &&
-            (now - _windowStartUtc).TotalSeconds <= ComboWindowSec)
+        bool sameType = string.Equals(ping.Type, _activeType, StringComparison.OrdinalIgnoreCase);
+        if (_isShowing && !_isHiding && sameType &&
+            (now - _lastTapUtc).TotalSeconds <= ComboWindowSec)
         {
-            // Combo: cùng type trong 1.5s → gộp, không xếp hàng
+            // Combo: cùng type, chạm liên tiếp → gộp + nới giờ ẩn, không xếp hàng
             _activeCount++;
+            _lastTapUtc = now;
             ApplyComboVisual();
             RestartHideTimer();
+            return;
+        }
+
+        if (_isShowing && !_isHiding && !sameType &&
+            (now - _windowStartUtc).TotalSeconds >= InterruptAfterSec)
+        {
+            // Khác cảm xúc, cái đang hiện đã chiếu >1s → nhường chỗ ngay, bỏ hàng đợi cũ
+            _queue.Clear();
+            Display(ping);
             return;
         }
 
@@ -128,6 +140,7 @@ public partial class OverlayWindow : Window
         _activeCount = 1;
         _lv3Done = false;
         _windowStartUtc = DateTime.UtcNow;
+        _lastTapUtc = _windowStartUtc;
 
         var bmp = _stickers.GetRandom(ping.Type);
         if (bmp != null) ImageBehavior.SetAnimatedSource(StickerImage, bmp);
@@ -205,10 +218,10 @@ public partial class OverlayWindow : Window
         _hideTimer.Stop();
 
         var sb = new Storyboard();
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(300));
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(180));
         Storyboard.SetTarget(fade, ContentPanel);
         Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(300))
+        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(180))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };

@@ -19,8 +19,10 @@ public enum ParticleKind
 }
 
 /// <summary>
-/// Quản lý sticker GIF: preload + decode sẵn lúc khởi động, chọn ngẫu nhiên chống trùng
-/// 2 biến thể vừa hiện. Cấu trúc: Assets/Stickers/&lt;type&gt;/*.gif (thả file vào là dùng).
+/// Quản lý sticker GIF: nguồn là EmbeddedResource trong exe (Assets/Stickers/&lt;type&gt;/*.gif),
+/// cộng thêm thư mục rời cạnh exe nếu có (dev). Chỉ giữ BYTES nén trong RAM (~6MB);
+/// decode BitmapImage lười khi cần và cache tối đa vài cái gần nhất — bản v0.1.0 decode
+/// sẵn cả 24 GIF lúc khởi động nên ngốn hơn 100MB RAM.
 /// </summary>
 public sealed class StickerService
 {
@@ -63,48 +65,115 @@ public sealed class StickerService
 
     private readonly string _root;
     private readonly Random _rng = new();
-    private readonly Dictionary<string, List<GifAsset>> _byType = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<GifSource>> _byType = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Queue<int>> _recent = new(StringComparer.OrdinalIgnoreCase);
 
-    private sealed class GifAsset
+    private sealed class GifSource
     {
-        public byte[] Bytes = Array.Empty<byte>();
-        public MemoryStream Stream = null!; // giữ sống để WpfAnimatedGif decode frame
+        public string Key = "";              // định danh duy nhất (tên resource / đường dẫn)
+        public byte[] Bytes = Array.Empty<byte>(); // GIF nén — giữ trong RAM rất nhẹ
+    }
+
+    // Cache decode lười: stream phải giữ sống để WpfAnimatedGif đọc frame.
+    private sealed class DecodedGif
+    {
+        public MemoryStream Stream = null!;
         public BitmapImage Image = null!;
     }
+
+    private const int MaxDecoded = 6;
+    private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
+    private readonly Queue<string> _decodedOrder = new();
+    private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
 
     public StickerService(string stickersRoot) => _root = stickersRoot;
 
     public IReadOnlyCollection<string> KnownTypes => _byType.Keys;
 
-    /// <summary>Quét thư mục, đọc toàn bộ GIF vào RAM + decode sẵn. Gọi 1 lần lúc khởi động.</summary>
+    /// <summary>Nạp danh mục sticker (chỉ bytes, KHÔNG decode). Gọi 1 lần lúc khởi động.</summary>
     public void Preload()
     {
         _byType.Clear();
-        if (!Directory.Exists(_root)) return;
 
-        foreach (var dir in Directory.GetDirectories(_root))
+        // 1) GIF nhúng trong exe: BuduPing.Assets.Stickers.<type>.<file>.gif
+        try
         {
-            string type = Path.GetFileName(dir);
-            var assets = new List<GifAsset>();
-            foreach (var file in Directory.GetFiles(dir, "*.gif").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            var asm = typeof(StickerService).Assembly;
+            foreach (var name in asm.GetManifestResourceNames())
             {
+                if (!name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase)) continue;
+                var parts = name.Split('.');
+                if (parts.Length < 3) continue;
+                string type = parts[^3]; // segment ngay trước tên file
                 try
                 {
-                    byte[] bytes = File.ReadAllBytes(file);
-                    var stream = new MemoryStream(bytes, writable: false);
-                    var bmp = new BitmapImage();
-                    bmp.BeginInit();
-                    bmp.CacheOption = BitmapCacheOption.OnLoad;
-                    bmp.StreamSource = stream;
-                    bmp.EndInit();
-                    bmp.Freeze();
-                    assets.Add(new GifAsset { Bytes = bytes, Stream = stream, Image = bmp });
+                    using var s = asm.GetManifestResourceStream(name);
+                    if (s == null) continue;
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    AddSource(type, name, ms.ToArray());
                 }
-                catch { /* file hỏng → bỏ qua, không crash */ }
+                catch { /* resource hỏng → bỏ qua */ }
             }
-            if (assets.Count > 0) _byType[type] = assets;
         }
+        catch { /* không có resource nhúng → còn đường thư mục rời bên dưới */ }
+
+        // 2) Thư mục rời cạnh exe (dev / thả thêm sticker): đọc bytes, decode lười như trên
+        if (Directory.Exists(_root))
+        {
+            foreach (var dir in Directory.GetDirectories(_root))
+            {
+                string type = Path.GetFileName(dir);
+                foreach (var file in Directory.GetFiles(dir, "*.gif").OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+                {
+                    try { AddSource(type, "file:" + file, File.ReadAllBytes(file)); }
+                    catch { /* file hỏng → bỏ qua */ }
+                }
+            }
+        }
+    }
+
+    private void AddSource(string type, string key, byte[] bytes)
+    {
+        if (bytes.Length == 0) return;
+        if (!_byType.TryGetValue(type, out var list))
+        {
+            list = new List<GifSource>();
+            _byType[type] = list;
+        }
+        list.Add(new GifSource { Key = key, Bytes = bytes });
+    }
+
+    /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>
+    private BitmapImage? Decode(GifSource src)
+    {
+        if (_decoded.TryGetValue(src.Key, out var hit))
+        {
+            _lastShownKey = src.Key;
+            return hit.Image;
+        }
+        try
+        {
+            var stream = new MemoryStream(src.Bytes, writable: false);
+            var bmp = new BitmapImage();
+            bmp.BeginInit();
+            bmp.CacheOption = BitmapCacheOption.OnLoad;
+            bmp.StreamSource = stream;
+            bmp.EndInit();
+            bmp.Freeze();
+            _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp };
+            _decodedOrder.Enqueue(src.Key);
+            _lastShownKey = src.Key;
+            while (_decoded.Count > MaxDecoded)
+            {
+                string oldest = _decodedOrder.Dequeue();
+                if (oldest == _lastShownKey) continue; // đang hiện → giữ stream sống
+                if (_decoded.Remove(oldest, out var evicted))
+                    evicted.Stream.Dispose();
+            }
+            return bmp;
+        }
+        catch { return null; }
     }
 
     /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>
@@ -114,7 +183,7 @@ public sealed class StickerService
         {
             // fallback: type lạ → lấy bừa 1 gif bất kỳ còn hơn hiện trống
             var any = _byType.Values.FirstOrDefault(l => l.Count > 0);
-            return any?[_rng.Next(any.Count)].Image;
+            return any == null ? null : Decode(any[_rng.Next(any.Count)]);
         }
 
         if (!_recent.TryGetValue(type!, out var recent))
@@ -138,6 +207,6 @@ public sealed class StickerService
 
         recent.Enqueue(idx);
         while (recent.Count > 2) recent.Dequeue();
-        return list[idx].Image;
+        return Decode(list[idx]);
     }
 }
