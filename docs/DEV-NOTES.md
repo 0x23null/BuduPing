@@ -48,19 +48,17 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 
 ## 4. Build / CI / Release (đã tự động hoá hoàn toàn)
 
-- 3 workflow trong `.github/workflows/`: `build-apk.yml`, `build-windows.yml` (chạy khi
-  push nhánh), `release.yml` (chạy khi push tag `v*`, build cả 2 + đính kèm
-  `BuduPing.apk` + `BuduPing.exe` vào GitHub Release của tag đó).
+- 4 workflow trong `.github/workflows/`: `build-apk.yml`, `build-windows.yml`,
+  `ui-review.yml` (emulator Android) và `release.yml` (build cả hai nền tảng).
 - Mỗi workflow có bước cuối chạy `.github/scripts/report-ci.sh`: commit trạng thái +
   đuôi log build vào nhánh **`ci-reports`** (`reports/<tên>.md`). Nhờ vậy kết quả build
-  đọc được qua git thuần — khi build đỏ, đọc file report tương ứng trên nhánh
-  `ci-reports` trước khi đoán lỗi. Quyền git là deploy key (chỉ git, không API/Actions).
-- Quy trình ra bản mới: sửa → commit → push `main` → `git tag vX.Y.Z` → push tag →
-  chờ 4 report (apk, windows, release-apk, release-windows) cùng `status: success`
-  trên nhánh `ci-reports` → gửi user link `releases/tag/vX.Y.Z`.
-- Android không build được ở máy dev Linux (sandbox chặn loopback TCP cho Gradle
-  daemon) — GitHub Actions là cổng kiểm chứng duy nhất cho APK. WPF thì biên dịch
-  kiểm tra được bằng `dotnet build -c Release -p:EnableWindowsTargeting=true`.
+  đọc được qua git thuần — khi build đỏ, đọc report đúng SHA trước khi đoán lỗi.
+- Từ 0.2.0: đổi root `VERSION` trên main sẽ kích hoạt release. Hai build phải cùng
+  thành công trước khi job publish tạo tag và đính kèm cả `BuduPing.apk` + `BuduPing.exe`.
+  Push tag `v*` và workflow_dispatch vẫn hỗ trợ; tag phải khớp VERSION.
+- GitHub Actions kiểm chứng native build và thu ảnh UI. Có thể chạy core checks,
+  asset checks tại máy dev; giới hạn môi trường khác nhau nên không xem build local
+  thành công là đủ cho cả hai nền tảng.
 
 ## 5. Nhật ký lỗi từ test thực tế (đừng lặp lại)
 
@@ -128,9 +126,9 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 - Đặt tên `<type>-NN.gif` trong thư mục đúng cảm xúc; file được nhúng tự động nhờ glob
   trong csproj, không cần sửa code khi thêm sticker.
 
-## 8. Việc còn mở (chưa làm, để sau v0.1.2)
+## 8. Việc còn mở (cập nhật 0.2.0)
 
-- Hotkey trả lời nhanh trên PC (Ctrl+Alt+Space), chế độ xem khi fullscreen,
+- Hotkey Ctrl+Alt+Space đã có trong 0.2.0; còn tự phát hiện fullscreen,
   giờ yên lặng (quiet hours), nhúng font Baloo 2 (hiện dùng font hệ thống).
 - Đánh giá lại RAM sau v0.1.2 bằng số đo của user; nếu vẫn chưa đạt kỳ vọng
   "siêu nhẹ" thì cân nhắc viết lại lớp overlay bằng Win32/GDI thuần.

@@ -37,6 +37,7 @@ Work branch: `codex/buduping-0.2`. Status: implementation under CI validation; n
 - Removed forced GC / EmptyWorkingSet. Optional `BUDUPING_DIAGNOSTICS=1` writes bounded local JSONL with private bytes, working set, managed bytes and receive-to-composition timing. It contains no message text or pair codes. This timing does not measure end-to-end network latency.
 - Settings are created lazily. Presence uses async PeriodicTimer; SSE ReadLine honors cancellation.
 - v0.1.3 appeared during work (`e63894a`). Its overlapping 10-note SoundService is retained rather than reverting to the old SoundPlayer cutoff behavior.
+- Integration at `7a88013` preserved main's bright sticker backdrop, larger message/badge text and +7% combo growth up to 1.85x. Main's history is merged, not reset. The earlier 1.3x growth cap was superseded during integration.
 
 ## Wire contract (backward compatible additions)
 

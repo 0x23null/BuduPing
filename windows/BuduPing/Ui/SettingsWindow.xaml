@@ -66,7 +66,8 @@
                         </ControlTemplate></ToggleButton.Template>
                     </ToggleButton>
                     <ContentPresenter IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}"
-                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" VerticalAlignment="Center" Margin="12,0,36,0"/>
+                        ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                        ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" VerticalAlignment="Center" Margin="12,0,36,0"/>
                     <Popup x:Name="PART_Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
                         <Border Background="White" CornerRadius="10" BorderBrush="#E5D6CE" BorderThickness="1" Padding="4" Margin="0,4,0,0" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
                             <ScrollViewer MaxHeight="260" CanContentScroll="True"><ItemsPresenter/></ScrollViewer>
@@ -79,7 +80,7 @@
             </ControlTemplate></Setter.Value></Setter>
         </Style>
     </Window.Resources>
-    <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" Background="#FFF9F4">
     <StackPanel Margin="28,24">
         <TextBlock Text="BuduPing" FontSize="28" FontWeight="SemiBold"/>
         <TextBlock Text="Một chạm, một chút thương." Foreground="#746057" Margin="0,4,0,20"/>
@@ -111,7 +112,9 @@
         </Border>
         <TextBlock Text="Vị trí sticker" FontWeight="SemiBold" FontSize="17" Margin="0,20,0,8"/>
         <TextBlock Text="Màn hình" Foreground="#746057"/>
-        <ComboBox x:Name="MonitorCombo" DisplayMemberPath="Label" SelectionChanged="Placement_Changed" AutomationProperties.Name="Màn hình hiển thị sticker"/>
+        <ComboBox x:Name="MonitorCombo" SelectionChanged="Placement_Changed" AutomationProperties.Name="Màn hình hiển thị sticker">
+            <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate>
+        </ComboBox>
         <TextBlock Text="Góc hiển thị" Foreground="#746057"/>
         <ComboBox x:Name="CornerCombo" SelectedValuePath="Tag" SelectionChanged="Placement_Changed" AutomationProperties.Name="Góc hiển thị">
             <ComboBoxItem Content="Dưới bên phải" Tag="BottomRight"/><ComboBoxItem Content="Dưới bên trái" Tag="BottomLeft"/>
