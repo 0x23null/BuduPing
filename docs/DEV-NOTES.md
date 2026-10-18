@@ -84,8 +84,11 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
   throttle 20s, gọi lúc idle sau khởi động + sau mỗi lần ẩn). Lưu ý trung thực: WPF +
   .NET runtime có "sàn" RAM riêng; muốn thấp hơn hẳn phải đổi stack hiển thị.
 - Kho sticker: soi thủ công cả 24 file, phát hiện hàng trà trộn — `hug-01` là gấu mèo,
-  `cheer-02` là mèo, `miss-02` fan-edit đầy watermark (đã/đang xoá), `goodnight-02`
-  thực ra là pose ôm (chuyển sang `hug-03`). Đang bổ sung biến thể mới.
+  `cheer-02` là mèo, `miss-02` fan-edit đầy watermark (đã xoá), `goodnight-02` thực ra
+  là pose ôm (chuyển sang `hug-03`). Đã bổ sung 8 biến thể xịn (Tenor/GIFDB, xử lý
+  trong suốt + kiểm chứng alpha góc): kho hiện có **28 sticker**. Việc mở còn lại:
+  `tease` mới có 1 mẫu (`tease-02`); một file cười lớn bị xếp nhầm vào cheer đã chuyển
+  về `funny-03`; `cheer-03` là GIF ngang nên nhân vật hơi nhỏ khi hiện.
 
 ## 6. Chuẩn nghiệm thu của user (không được phá)
 

@@ -144,6 +144,18 @@ public sealed class StickerService
         list.Add(new GifSource { Key = key, Bytes = bytes });
     }
 
+    /// <summary>Nhả toàn bộ GIF đã decode (gọi sau khi overlay ẩn hẳn để trả RAM về idle).</summary>
+    public void ReleaseDecoded()
+    {
+        foreach (var d in _decoded.Values)
+        {
+            try { d.Stream.Dispose(); } catch { }
+        }
+        _decoded.Clear();
+        _decodedOrder.Clear();
+        _lastShownKey = "";
+    }
+
     /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>
     private BitmapImage? Decode(GifSource src)
     {

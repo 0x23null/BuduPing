@@ -26,6 +26,8 @@ public partial class App : Application
     private FirebaseSync? _sync;
     private StickerService? _stickers;
     private SoundPlayer? _popPlayer;
+    private SoundPlayer? _popPlayer2; // combo Lv2: pop cao hơn, nhanh hơn
+    private SoundPlayer? _popPlayer3; // combo Lv3: pop cao nhất + lấp lánh
     private System.Threading.Timer? _presenceTimer;
     private readonly Random _rng = new();
     private bool _exiting;
@@ -40,7 +42,7 @@ public partial class App : Application
 
         string stickersRoot = Path.Combine(AppContext.BaseDirectory, "Assets", "Stickers");
         _stickers = new StickerService(stickersRoot);
-        _stickers.Preload(); // decode sẵn toàn bộ GIF → hiện là hiện ngay
+        _stickers.Preload(); // chỉ nạp bytes GIF nhúng; decode lười khi hiện (nhẹ RAM)
 
         LoadPopSound();
 
@@ -50,6 +52,9 @@ public partial class App : Application
         SetupTray();
         StartSync(Config.PairCode);
         StartPresence();
+
+        // Khởi động xong vài giây → nhả RAM thừa, app về trạng thái nền nhẹ
+        _ = Task.Delay(TimeSpan.FromSeconds(6)).ContinueWith(_ => MemoryTrim.Request());
     }
 
     // ================= Tray =================
@@ -158,23 +163,35 @@ public partial class App : Application
 
     private void LoadPopSound()
     {
-        try
-        {
-            var asm = Assembly.GetExecutingAssembly();
-            var s = asm.GetManifestResourceStream("BuduPing.Assets.Sounds.pop.wav");
-            if (s != null)
-            {
-                _popPlayer = new SoundPlayer(s);
-                _popPlayer.Load(); // decode sẵn, phát là kêu ngay
-            }
-        }
-        catch { }
+        var asm = Assembly.GetExecutingAssembly();
+        _popPlayer = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop.wav");
+        _popPlayer2 = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop2.wav");
+        _popPlayer3 = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop3.wav");
     }
 
-    public void PlayPop()
+    private static SoundPlayer? LoadPlayer(Assembly asm, string resource)
     {
-        if (!Config.SoundOn || _popPlayer == null) return;
-        try { _popPlayer.Play(); } catch { }
+        try
+        {
+            var s = asm.GetManifestResourceStream(resource);
+            if (s == null) return null;
+            var p = new SoundPlayer(s);
+            p.Load(); // decode sẵn, phát là kêu ngay
+            return p;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Phát tiếng pop theo tầng combo: 0 = thường, 1 = Lv2 (cao hơn), 2 = Lv3 (lấp lánh).
+    /// Play() cắt tiếng đang phát → spam càng nhanh tiếng càng dồn dập theo nhịp bấm.</summary>
+    public void PlayPop(int tier = 0)
+    {
+        if (!Config.SoundOn) return;
+        var p = tier >= 2 ? _popPlayer3 ?? _popPlayer
+              : tier == 1 ? _popPlayer2 ?? _popPlayer
+              : _popPlayer;
+        if (p == null) return;
+        try { p.Play(); } catch { }
     }
 
     // ================= Test sticker nội bộ =================

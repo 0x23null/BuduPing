@@ -187,7 +187,7 @@ public partial class OverlayWindow : Window
             PopSticker(1.45);
             SpawnMiniParade();
             BurstFor(_activeType, center, density: 3);
-            _app.PlayPop();
+            _app.PlayPop(2);
         }
         else if (_activeCount >= 3)
         {
@@ -196,12 +196,12 @@ public partial class OverlayWindow : Window
             ComboBadge.Visibility = Visibility.Visible;
             PopSticker(1.3);
             BurstFor(_activeType, center, density: 2);
-            _app.PlayPop();
+            _app.PlayPop(1);
         }
         else
         {
             PopSticker(1 + 0.06 * _activeCount);
-            _app.PlayPop();
+            _app.PlayPop(1);
         }
     }
 
@@ -235,6 +235,10 @@ public partial class OverlayWindow : Window
             _isShowing = false;
             _isHiding = false;
             ClearParticles();
+            // Nhả frame GIF đã decode + trim working set → idle RAM thấp
+            ImageBehavior.SetAnimatedSource(StickerImage, null);
+            _stickers.ReleaseDecoded();
+            MemoryTrim.Request();
             if (_queue.Count > 0) Display(_queue.Dequeue());
         };
         sb.Begin();
@@ -566,7 +570,8 @@ public partial class OverlayWindow : Window
         for (int i = 0; i < 3; i++)
         {
             var bmp = _stickers.GetRandom(_activeType);
-            var img = new Image { Width = 54, Height = 54, IsHitTestVisible = false };
+            var img = new Image { Width = 68, Height = 68, IsHitTestVisible = false };
+            RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
             if (bmp != null) ImageBehavior.SetAnimatedSource(img, bmp);
             var p = AddParticle(img, -70 - i * 85, Height - 100);
             p.Vx = 150; p.Vy = 0;

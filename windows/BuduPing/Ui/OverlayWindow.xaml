@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="BuduPing Overlay"
-        Width="300" Height="470"
+        Width="380" Height="580"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="NoResize"
         Visibility="Collapsed">
@@ -22,14 +22,14 @@
             <!-- Bong bóng chat: bo góc + đuôi chĩa xuống sticker -->
             <StackPanel x:Name="BubbleWrap" HorizontalAlignment="Center" Margin="0,0,0,4">
                 <Border x:Name="Bubble" Background="#F5FFFFFF" CornerRadius="18"
-                        Padding="14,10" MaxWidth="252" Visibility="Collapsed">
+                        Padding="16,11" MaxWidth="330" Visibility="Collapsed">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.30" Color="#666666"/>
                     </Border.Effect>
                     <StackPanel>
-                        <TextBlock x:Name="BubbleHeader" FontSize="13" FontWeight="Bold"
+                        <TextBlock x:Name="BubbleHeader" FontSize="14" FontWeight="Bold"
                                    Foreground="#D94F70" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="BubbleText" FontSize="15" Foreground="#2B2B2B"
+                        <TextBlock x:Name="BubbleText" FontSize="17" Foreground="#2B2B2B"
                                    TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
@@ -37,12 +37,25 @@
                       HorizontalAlignment="Center" Margin="0,-1,0,0" Visibility="Collapsed"/>
             </StackPanel>
 
-            <!-- Sticker GIF trong suốt + bóng đổ mềm theo hình -->
+            <!-- Sticker GIF trong suốt + quầng sáng hồng sau lưng: trên nền desktop tối
+                 sticker viền tối + bóng đổ tối sẽ chìm; quầng sáng này giúp sticker
+                 luôn nổi rõ cả nền sáng lẫn tối -->
             <Grid HorizontalAlignment="Center">
-                <Image x:Name="StickerImage" Width="200" Height="200" Stretch="Uniform"
+                <Ellipse Width="330" Height="330" HorizontalAlignment="Center" VerticalAlignment="Center"
+                         IsHitTestVisible="False">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#59FFE9F2" Offset="0"/>
+                            <GradientStop Color="#33FFC7DC" Offset="0.55"/>
+                            <GradientStop Color="#00FFC7DC" Offset="1"/>
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+                <Image x:Name="StickerImage" Width="264" Height="264" Stretch="Uniform"
+                       RenderOptions.BitmapScalingMode="HighQuality"
                        RenderTransformOrigin="0.5,0.5">
                     <Image.Effect>
-                        <DropShadowEffect BlurRadius="14" ShadowDepth="4" Opacity="0.35" Color="#444444"/>
+                        <DropShadowEffect BlurRadius="18" ShadowDepth="0" Opacity="0.5" Color="#FF9EC7"/>
                     </Image.Effect>
                     <Image.RenderTransform>
                         <TransformGroup>
@@ -54,7 +67,7 @@
                 <Border x:Name="ComboBadge" Background="#FF5C8A" CornerRadius="14" Padding="10,4"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,2,0"
                         Visibility="Collapsed">
-                    <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="16"
+                    <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="19"
                                FontWeight="Bold" Foreground="White"/>
                 </Border>
             </Grid>
