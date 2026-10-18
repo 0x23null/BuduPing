@@ -1,0 +1,10 @@
+{
+  "rules": {
+    "pairs": {
+      "$pairId": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
