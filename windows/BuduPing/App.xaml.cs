@@ -103,7 +103,12 @@ public partial class App : Application
                 await Task.Delay(950);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-combo.png");
             }
-            finally { _overlay?.ResetPair(); _exiting = true; _hotkey.Dispose(); Shutdown(); }
+            catch (Exception error)
+            {
+                File.WriteAllText(Path.Combine(directory, "review-error.txt"), error.ToString());
+                Environment.ExitCode = 1;
+            }
+            finally { _overlay?.ResetPair(); _exiting = true; _hotkey.Dispose(); Shutdown(Environment.ExitCode); }
         };
         timer.Start();
         void SaveWindow(string name)
@@ -114,6 +119,20 @@ public partial class App : Application
         void SaveVisual(FrameworkElement visual, string name)
         {
             visual.UpdateLayout();
+            if (_overlay != null && ReferenceEquals(visual, _overlay.Content))
+            {
+                var scale = (System.Windows.Media.ScaleTransform)_overlay.FindName("ContentScale");
+                var slide = (System.Windows.Media.TranslateTransform)_overlay.FindName("ContentSlide");
+                var panel = (FrameworkElement)_overlay.FindName("ContentPanel");
+                File.WriteAllText(Path.Combine(directory, name + ".json"), System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    width = visual.ActualWidth, height = visual.ActualHeight, scaleX = scale.ScaleX, scaleY = scale.ScaleY,
+                    slideY = slide.Y, panelHeight = panel.ActualHeight, panelWidth = panel.ActualWidth,
+                    dpi = System.Windows.Media.VisualTreeHelper.GetDpi(visual).PixelsPerDip,
+                }));
+                if (Math.Abs(scale.ScaleX - 1) > .01 || Math.Abs(scale.ScaleY - 1) > .01 || Math.Abs(slide.Y) > .1)
+                    throw new InvalidOperationException("The native entrance did not settle at full size and position.");
+            }
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
                 (int)Math.Ceiling(visual.ActualWidth), (int)Math.Ceiling(visual.ActualHeight),
                 96, 96, System.Windows.Media.PixelFormats.Pbgra32);

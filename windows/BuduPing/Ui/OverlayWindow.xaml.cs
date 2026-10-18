@@ -244,6 +244,7 @@ public partial class OverlayWindow : Window
         StickerShake.X = StickerShake.Y = StickerTilt.Angle = 0;
         Visibility = Visibility.Visible;
         PlaceBottomRight();
+        UpdateLayout(); // The first burst needs the arranged sticker position, not its unmeasured origin.
         PlayEntrance();
         if (!peek)
         {
@@ -339,19 +340,12 @@ public partial class OverlayWindow : Window
         _hideTimer.Stop();
 
         int generation = _generation;
-        var sb = new Storyboard();
         var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180));
-        Storyboard.SetTarget(fade, ContentPanel);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
         var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
-        Storyboard.SetTarget(slide, ContentSlide);
-        Storyboard.SetTargetProperty(slide, new PropertyPath(TranslateTransform.YProperty));
-        sb.Children.Add(fade);
-        sb.Children.Add(slide);
-        sb.Completed += (_, _) =>
+        fade.Completed += (_, _) =>
         {
             if (generation != _generation) return;
             Visibility = Visibility.Collapsed;
@@ -367,19 +361,25 @@ public partial class OverlayWindow : Window
                 if (!_app.Config.DiscreetMode && !_app.Config.HideMessageText) _app.RefreshDeferred();
             }
         };
-        sb.Begin();
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, slide);
+        ContentPanel.BeginAnimation(OpacityProperty, fade);
     }
 
     // ================= Animation vào/ra =================
 
     private void PlayEntrance()
     {
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, null);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentPanel.BeginAnimation(OpacityProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        BubbleScale.ScaleX = BubbleScale.ScaleY = 1;
+        ContentTilt.Angle = 0;
         if (_peeking || _app.Config.ReducedMotion)
         {
-            ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-            ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-            ContentSlide.BeginAnimation(TranslateTransform.YProperty, null);
-            ContentPanel.BeginAnimation(OpacityProperty, null);
             ContentScale.ScaleX = ContentScale.ScaleY = _peeking ? 0.42 : 1;
             ContentSlide.Y = 0; ContentPanel.Opacity = 1;
             return;
@@ -388,34 +388,28 @@ public partial class OverlayWindow : Window
         ContentSlide.Y = 36;
         ContentPanel.Opacity = 0;
 
-        var sb = new Storyboard();
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        AddScaleKeyframes(sb, ContentScale, ScaleTransform.ScaleXProperty, ease);
-        AddScaleKeyframes(sb, ContentScale, ScaleTransform.ScaleYProperty, ease);
+        StartScaleKeyframes(ContentScale, ScaleTransform.ScaleXProperty, ease);
+        StartScaleKeyframes(ContentScale, ScaleTransform.ScaleYProperty, ease);
 
         var fade = new DoubleAnimation(1, TimeSpan.FromMilliseconds(200));
-        Storyboard.SetTarget(fade, ContentPanel);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
         var rise = new DoubleAnimation(0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
-        Storyboard.SetTarget(rise, ContentSlide);
-        Storyboard.SetTargetProperty(rise, new PropertyPath(TranslateTransform.YProperty));
-        sb.Children.Add(fade);
-        sb.Children.Add(rise);
         var tilt = new DoubleAnimation(-3, 0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
-        Storyboard.SetTarget(tilt, ContentTilt); Storyboard.SetTargetProperty(tilt, new PropertyPath(RotateTransform.AngleProperty)); sb.Children.Add(tilt);
+        ContentPanel.BeginAnimation(OpacityProperty, fade);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, rise);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, tilt);
         if (Bubble.Visibility == Visibility.Visible)
         {
             foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
             {
                 var bubble = new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(550))
                     { BeginTime = TimeSpan.FromMilliseconds(100), EasingFunction = new BackEase { Amplitude = 1.4, EasingMode = EasingMode.EaseOut } };
-                Storyboard.SetTarget(bubble, BubbleScale); Storyboard.SetTargetProperty(bubble, new PropertyPath(property)); sb.Children.Add(bubble);
+                BubbleScale.BeginAnimation(property, bubble);
             }
         }
-        sb.Begin();
     }
 
-    private static void AddScaleKeyframes(Storyboard sb, ScaleTransform target,
+    private static void StartScaleKeyframes(ScaleTransform target,
         DependencyProperty prop, IEasingFunction ease)
     {
         var anim = new DoubleAnimationUsingKeyFrames();
@@ -423,23 +417,17 @@ public partial class OverlayWindow : Window
             KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(270)), ease));
         anim.KeyFrames.Add(new EasingDoubleKeyFrame(.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(460)), ease));
         anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(680)), ease));
-        Storyboard.SetTarget(anim, target);
-        Storyboard.SetTargetProperty(anim, new PropertyPath(prop));
-        sb.Children.Add(anim);
+        target.BeginAnimation(prop, anim);
     }
 
     private void PopSticker(double toScale)
     {
-        var sb = new Storyboard();
         var ease = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 1.6 };
         foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
         {
             var anim = new DoubleAnimation(toScale, TimeSpan.FromMilliseconds(200)) { EasingFunction = ease };
-            Storyboard.SetTarget(anim, StickerScale);
-            Storyboard.SetTargetProperty(anim, new PropertyPath(prop));
-            sb.Children.Add(anim);
+            StickerScale.BeginAnimation(prop, anim);
         }
-        sb.Begin();
     }
 
     private void ShakeSticker()
@@ -449,11 +437,7 @@ public partial class OverlayWindow : Window
         for (int i = 0; i < xs.Length; i++)
             anim.KeyFrames.Add(new LinearDoubleKeyFrame(xs[i],
                 KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(60 * (i + 1)))));
-        Storyboard.SetTarget(anim, StickerShake);
-        Storyboard.SetTargetProperty(anim, new PropertyPath(TranslateTransform.XProperty));
-        var sb = new Storyboard();
-        sb.Children.Add(anim);
-        sb.Begin();
+        StickerShake.BeginAnimation(TranslateTransform.XProperty, anim);
     }
 
     private Point StickerCenter()

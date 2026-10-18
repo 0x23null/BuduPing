@@ -1,7 +1,7 @@
 name: Android UI review
 on:
   push:
-    branches: ['codex/buduping-0.2']
+    branches: ['main', 'codex/buduping-0.2']
     paths:
       - 'android/**'
       - 'tools/prepare_assets.py'

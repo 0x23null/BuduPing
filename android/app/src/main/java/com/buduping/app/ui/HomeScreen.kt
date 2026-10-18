@@ -149,7 +149,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
                 items(ordered, key = { it.type }) { emotion ->
-                    EmotionTile(emotion, catalog.firstOrNull { it.type == emotion.type }, emotion.type in favorites,
+                    val preview = if (emotion.type == "love") catalog.firstOrNull { it.id == "love-02" } else null
+                    EmotionTile(emotion, preview ?: catalog.firstOrNull { it.type == emotion.type }, emotion.type in favorites,
                         enabled = catalog.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
                         onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
                 }
@@ -157,7 +158,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                 Column(Modifier.padding(12.dp)) {
                     OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
-                        label = { Text("Kèm lời nhắn · tuỳ chọn") }, modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Lời nhắn", maxLines = 1) }, modifier = Modifier.fillMaxWidth(),
                         singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
                     Spacer(Modifier.height(6.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {

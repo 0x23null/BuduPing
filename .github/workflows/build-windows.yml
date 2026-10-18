@@ -63,6 +63,7 @@ jobs:
           if (-not (Test-Path (Join-Path $target 'overlay-combo.png'))) { throw 'Missing overlay screenshot' }
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: BuduPing-windows-ui-review
           path: ${{ runner.temp }}/buduping-ui

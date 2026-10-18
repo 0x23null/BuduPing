@@ -38,7 +38,7 @@ fun EmotionTile(emotion: Emotion, variant: StickerVariant?, favorite: Boolean, e
     val rose = MaterialTheme.colorScheme.primary
     Box {
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth().height(if (LocalDensity.current.fontScale > 1.1f) 120.dp else 100.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+        modifier = Modifier.fillMaxWidth().height(if (LocalDensity.current.fontScale > 1.1f) 120.dp else 88.dp).graphicsLayer { scaleX = scale; scaleY = scale }
             .combinedClickable(enabled = enabled, interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current,
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
                 onClickLabel = "Gửi ${emotion.label}", onLongClickLabel = "Chọn sticker ${emotion.label}")
