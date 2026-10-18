@@ -99,6 +99,10 @@ jobs:
   publish:
     needs: [version, apk, windows]
     runs-on: ubuntu-latest
+    # Run 6 failed creating the release: 403 "Resource not accessible by
+    # integration" — declare the permission on the job itself as well.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -109,6 +113,7 @@ jobs:
       - name: Publish both files together
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: BuduPing ${{ needs.version.outputs.tag }} — UI and interactions preview
