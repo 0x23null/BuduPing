@@ -227,6 +227,10 @@ public partial class OverlayWindow : Window
         BubbleText.Text = hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)];
         Bubble.Visibility = !peek && text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         BubbleTail.Visibility = Bubble.Visibility;
+        var glowColor = ping.Type is "miss" or "sad" or "goodnight" or "sorry"
+            ? Color.FromArgb(90, 150, 190, 255) : ping.Type is "hug" or "cheer" or "hungry"
+            ? Color.FromArgb(90, 255, 185, 115) : Color.FromArgb(90, 255, 175, 205);
+        StickerGlow.Fill = new RadialGradientBrush(glowColor, Colors.Transparent);
         ComboBadge.Visibility = Visibility.Collapsed;
         StickerScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         StickerScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
@@ -287,32 +291,24 @@ public partial class OverlayWindow : Window
     private void ApplyComboVisual()
     {
         ApplyMoodPose(_activeType);
-        var center = StickerCenter();
+        if (_activeCount % 4 == 0 && _current != null)
+        {
+            var variant = _stickers.GetRandom(_activeType);
+            if (variant != null) { ImageBehavior.SetAnimatedSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
+        }
+        ComboBadgeText.Text = "x" + _activeCount;
+        ComboBadge.Visibility = Visibility.Visible;
+        PopSticker(Math.Min(1.3, 1 + .04 * _activeCount));
         if (_activeCount >= 5 && !_lv3Done)
         {
-            // Lv3: BÙNG NỔ CỤC BỘ — sticker lớn + mini sticker chạy nối đuôi ở mép dưới + mưa hạt quanh sticker
-            _lv3Done = true;
-            ComboBadgeText.Text = "x" + _activeCount;
-            ComboBadge.Visibility = Visibility.Visible;
-            PopSticker(1.18);
-            SpawnMiniParade();
-            BurstFor(_activeType, center, density: 3);
-            _app.PlayPop(2);
+            _lv3Done = true; SpawnMiniParade(); BurstFor(_activeType, StickerCenter(), 3);
         }
-        else if (_activeCount >= 3)
-        {
-            // Lv2: sticker to ~1.3x + badge xN + hạt dày hơn
-            ComboBadgeText.Text = "x" + _activeCount;
-            ComboBadge.Visibility = Visibility.Visible;
-            PopSticker(1.12);
-            BurstFor(_activeType, center, density: 2);
-            _app.PlayPop(1);
-        }
-        else
-        {
-            PopSticker(1 + 0.06 * _activeCount);
-            _app.PlayPop(1);
-        }
+        else BurstFor(_activeType, StickerCenter(), _activeCount >= 3 ? 2 : 1);
+        _app.PlayPop(_activeCount);
+        BadgeScale.BeginAnimation(ScaleTransform.ScaleXProperty,
+            new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(400)) { EasingFunction = new BackEase { Amplitude = 1.6, EasingMode = EasingMode.EaseOut } });
+        BadgeScale.BeginAnimation(ScaleTransform.ScaleYProperty,
+            new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(400)) { EasingFunction = new BackEase { Amplitude = 1.6, EasingMode = EasingMode.EaseOut } });
     }
 
     private void RestartHideTimer()
@@ -375,8 +371,8 @@ public partial class OverlayWindow : Window
             ContentSlide.Y = 0; ContentPanel.Opacity = 1;
             return;
         }
-        ContentScale.ScaleX = ContentScale.ScaleY = 0.6;
-        ContentSlide.Y = 24;
+        ContentScale.ScaleX = ContentScale.ScaleY = 0.55;
+        ContentSlide.Y = 36;
         ContentPanel.Opacity = 0;
 
         var sb = new Storyboard();
@@ -387,11 +383,22 @@ public partial class OverlayWindow : Window
         var fade = new DoubleAnimation(1, TimeSpan.FromMilliseconds(200));
         Storyboard.SetTarget(fade, ContentPanel);
         Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-        var rise = new DoubleAnimation(0, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease };
+        var rise = new DoubleAnimation(0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
         Storyboard.SetTarget(rise, ContentSlide);
         Storyboard.SetTargetProperty(rise, new PropertyPath(TranslateTransform.YProperty));
         sb.Children.Add(fade);
         sb.Children.Add(rise);
+        var tilt = new DoubleAnimation(-3, 0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
+        Storyboard.SetTarget(tilt, ContentTilt); Storyboard.SetTargetProperty(tilt, new PropertyPath(RotateTransform.AngleProperty)); sb.Children.Add(tilt);
+        if (Bubble.Visibility == Visibility.Visible)
+        {
+            foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            {
+                var bubble = new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(550))
+                    { BeginTime = TimeSpan.FromMilliseconds(100), EasingFunction = new BackEase { Amplitude = 1.4, EasingMode = EasingMode.EaseOut } };
+                Storyboard.SetTarget(bubble, BubbleScale); Storyboard.SetTargetProperty(bubble, new PropertyPath(property)); sb.Children.Add(bubble);
+            }
+        }
         sb.Begin();
     }
 
@@ -400,9 +407,9 @@ public partial class OverlayWindow : Window
     {
         var anim = new DoubleAnimationUsingKeyFrames();
         anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.08,
-            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(150)), ease));
-        anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.0,
-            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(260)), ease));
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(270)), ease));
+        anim.KeyFrames.Add(new EasingDoubleKeyFrame(.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(460)), ease));
+        anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(680)), ease));
         Storyboard.SetTarget(anim, target);
         Storyboard.SetTargetProperty(anim, new PropertyPath(prop));
         sb.Children.Add(anim);
@@ -537,6 +544,11 @@ public partial class OverlayWindow : Window
         return glyph;
     }
 
+    private static readonly Geometry HeartGeometry = Geometry.Parse("M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z");
+    private static FrameworkElement HeartGlyph(double size, string color)
+        => new System.Windows.Shapes.Path { Data = HeartGeometry, Stretch = Stretch.Uniform,
+            Width = size, Height = size, Fill = (Brush)new BrushConverter().ConvertFromString(color)!, IsHitTestVisible = false };
+
     private void BurstFor(string type, Point c, int density)
     {
         var kind = StickerService.ParticleKindFor(type);
@@ -548,7 +560,7 @@ public partial class OverlayWindow : Window
                 int n = 6 * density;
                 for (int i = 0; i < n; i++)
                 {
-                    var p = AddParticle(Glyph(hearts[_rng.Next(hearts.Length)], 18 + _rng.NextDouble() * 10),
+                    var p = AddParticle(HeartGlyph(18 + _rng.NextDouble() * 10, "#ED719D"),
                         c.X - 60 + _rng.NextDouble() * 120, c.Y - 40 + _rng.NextDouble() * 80);
                     p.Vx = (_rng.NextDouble() - 0.5) * 30;
                     p.Vy = -(50 + _rng.NextDouble() * 45);
@@ -570,7 +582,7 @@ public partial class OverlayWindow : Window
                 string[] hearts = { "🤍", "💗", "💭" };
                 for (int i = 0; i < 6 * density; i++)
                 {
-                    var p = AddParticle(Glyph(hearts[_rng.Next(hearts.Length)], 14 + _rng.NextDouble() * 8),
+                    var p = AddParticle(HeartGlyph(14 + _rng.NextDouble() * 8, "#EAA7C1"),
                         c.X - 80 + _rng.NextDouble() * 160, c.Y - 100 - _rng.NextDouble() * 40);
                     p.Vx = (_rng.NextDouble() - 0.5) * 16;
                     p.Vy = 26 + _rng.NextDouble() * 22; // rơi chậm như ngóng
@@ -591,7 +603,7 @@ public partial class OverlayWindow : Window
                 p.Life = 0.9; p.StartScale = 0.35; p.EndScale = 1.5; p.FadeIn = 0.1;
                 for (int i = 0; i < 4 * density; i++)
                 {
-                    var q = AddParticle(Glyph("🧡", 16), c.X - 50 + _rng.NextDouble() * 100, c.Y);
+                    var q = AddParticle(HeartGlyph(16, "#EBA361"), c.X - 50 + _rng.NextDouble() * 100, c.Y);
                     q.Vy = -(40 + _rng.NextDouble() * 30); q.Life = 1.2;
                     q.SwayAmp = 10; q.SwayFreq = 3; q.Phase = _rng.NextDouble() * 6.28;
                 }

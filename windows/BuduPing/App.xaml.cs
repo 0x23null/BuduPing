@@ -25,9 +25,7 @@ public partial class App : Application
     private SettingsWindow? _settings;
     private FirebaseSync? _sync;
     private StickerService? _stickers;
-    private SoundPlayer? _popPlayer;
-    private SoundPlayer? _popPlayer2; // combo Lv2: pop cao hơn, nhanh hơn
-    private SoundPlayer? _popPlayer3; // combo Lv3: pop cao nhất + lấp lánh
+    private SoundService? _sounds;
     private CancellationTokenSource? _presenceCts;
     private ReplyHotkey? _hotkey;
     private MenuItem? _discreetMenu;
@@ -127,9 +125,13 @@ public partial class App : Application
     private void StartSync(string pairCode)
     {
         _sync?.Dispose();
-        _sync = new FirebaseSync(PairCode.ToPairId(pairCode));
-        _sync.PingReceived += OnPingReceived;
-        _sync.Start();
+        var sync = new FirebaseSync(PairCode.ToPairId(pairCode));
+        _sync = sync;
+        sync.PingReceived += ping => Dispatcher.InvokeAsync(() =>
+        {
+            if (ReferenceEquals(_sync, sync)) _overlay?.ShowPing(ping);
+        });
+        sync.Start();
         _ = _sync.PutPresenceAsync(); // báo online ngay
     }
 
@@ -225,38 +227,14 @@ public partial class App : Application
 
     // ================= Âm pop =================
 
-    private void LoadPopSound()
+    private void LoadPopSound() => _sounds = new SoundService();
+
+    public void PlayPop(int comboCount = 1)
     {
-        var asm = Assembly.GetExecutingAssembly();
-        _popPlayer = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop.wav");
-        _popPlayer2 = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop2.wav");
-        _popPlayer3 = LoadPlayer(asm, "BuduPing.Assets.Sounds.pop3.wav");
+        if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount);
     }
 
-    private static SoundPlayer? LoadPlayer(Assembly asm, string resource)
-    {
-        try
-        {
-            var s = asm.GetManifestResourceStream(resource);
-            if (s == null) return null;
-            var p = new SoundPlayer(s);
-            p.Load(); // decode sẵn, phát là kêu ngay
-            return p;
-        }
-        catch { return null; }
-    }
-
-    /// <summary>Phát tiếng pop theo tầng combo: 0 = thường, 1 = Lv2 (cao hơn), 2 = Lv3 (lấp lánh).
-    /// Play() cắt tiếng đang phát → spam càng nhanh tiếng càng dồn dập theo nhịp bấm.</summary>
-    public void PlayPop(int tier = 0)
-    {
-        if (!Config.SoundOn) return;
-        var p = tier >= 2 ? _popPlayer3 ?? _popPlayer
-              : tier == 1 ? _popPlayer2 ?? _popPlayer
-              : _popPlayer;
-        if (p == null) return;
-        try { p.Play(); } catch { }
-    }
+    public System.Windows.Media.Imaging.BitmapSource? GetPreviewSticker() => _stickers?.GetRandom("hug");
 
     // ================= Test sticker nội bộ =================
 
@@ -292,6 +270,7 @@ public partial class App : Application
         finally
         {
             _sync?.Dispose();
+            _sounds?.Dispose();
             _tray?.Dispose();
             Shutdown();
         }

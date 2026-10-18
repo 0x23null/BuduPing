@@ -10,9 +10,9 @@ private val Day = lightColorScheme(
     primaryContainer = Color(0xFFF6DDE6), onPrimaryContainer = Color(0xFF54233A),
     secondary = Color(0xFF765342), onSecondary = Color.White,
     secondaryContainer = Color(0xFFF5E5DB), onSecondaryContainer = Color(0xFF51382B),
-    background = Color(0xFFFFF9F4), onBackground = Color(0xFF382923),
-    surface = Color(0xFFFFF9F4), onSurface = Color(0xFF382923),
-    surfaceVariant = Color(0xFFF9EFE7), onSurfaceVariant = Color(0xFF746057),
+    background = Color(0xFFFFF7FA), onBackground = Color(0xFF382923),
+    surface = Color(0xFFFFF7FA), onSurface = Color(0xFF382923),
+    surfaceVariant = Color(0xFFFFFFFF), onSurfaceVariant = Color(0xFF746057),
     outline = Color(0xFF91796F), outlineVariant = Color(0xFFE5D6CE),
 )
 private val Night = darkColorScheme(

@@ -15,12 +15,14 @@
             <StackPanel.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="ContentScale" ScaleX="0.6" ScaleY="0.6"/>
+                    <RotateTransform x:Name="ContentTilt" Angle="0"/>
                     <TranslateTransform x:Name="ContentSlide" Y="24"/>
                 </TransformGroup>
             </StackPanel.RenderTransform>
 
             <!-- Bong bóng chat: bo góc + đuôi chĩa xuống sticker -->
-            <StackPanel x:Name="BubbleWrap" HorizontalAlignment="Center" Margin="0,0,0,4">
+            <StackPanel x:Name="BubbleWrap" HorizontalAlignment="Center" Margin="0,0,0,4" RenderTransformOrigin="0.5,1">
+                <StackPanel.RenderTransform><ScaleTransform x:Name="BubbleScale"/></StackPanel.RenderTransform>
                 <Border x:Name="Bubble" Background="#F5FFFFFF" CornerRadius="18"
                         Padding="16,11" MaxWidth="330" Visibility="Collapsed">
                     <Border.Effect>
@@ -41,7 +43,7 @@
                  sticker viền tối + bóng đổ tối sẽ chìm; quầng sáng này giúp sticker
                  luôn nổi rõ cả nền sáng lẫn tối -->
             <Grid HorizontalAlignment="Center">
-                <Ellipse Width="330" Height="330" HorizontalAlignment="Center" VerticalAlignment="Center"
+                <Ellipse x:Name="StickerGlow" Width="330" Height="330" HorizontalAlignment="Center" VerticalAlignment="Center"
                          IsHitTestVisible="False">
                     <Ellipse.Fill>
                         <RadialGradientBrush>
@@ -69,7 +71,8 @@
                 </Grid>
                 <Border x:Name="ComboBadge" Background="#A93F65" CornerRadius="14" Padding="10,4"
                         HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,2,0"
-                        Visibility="Collapsed">
+                        Visibility="Collapsed" RenderTransformOrigin="0.5,0.5">
+                    <Border.RenderTransform><ScaleTransform x:Name="BadgeScale"/></Border.RenderTransform>
                     <TextBlock x:Name="ComboBadgeText" Text="x3" FontSize="19"
                                FontWeight="Bold" Foreground="White"/>
                 </Border>

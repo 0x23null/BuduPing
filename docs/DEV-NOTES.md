@@ -1,7 +1,10 @@
 # BuduPing — Ghi chú phát triển (đọc file này trước khi sửa code)
 
 Tài liệu bàn giao ngữ cảnh cho bất kỳ ai (người hoặc AI) tiếp tục phát triển BuduPing.
-Cập nhật lần cuối: 2026-10-19, trong lúc chuẩn bị v0.1.2.
+Cập nhật: 2026-10-19. v0.1.2 đã phát hành; v0.1.3 xuất hiện trên main trong lúc phát triển.
+Nhánh `codex/buduping-0.2` đang triển khai bản nâng cấp: đọc [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md)
+để biết code đã thay đổi, hợp đồng feedback, kết quả kiểm chứng và phần cần test máy thật.
+Không dùng các dòng lịch sử "đang làm" bên dưới để suy ra trạng thái release.
 
 ## 1. Tổng quan
 
@@ -72,7 +75,7 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 | APK không có icon | Manifest không khai báo icon | Thêm bộ icon Bubu (mọi density + adaptive) |
 | CI APK đỏ 11s (trước đó) | `gradle-wrapper.jar` tự lắp bị hỏng (thiếu class) | Thay jar chính thức Gradle 8.7 (kiểm chứng sha256) |
 
-### v0.1.1 → v0.1.2 (đang làm)
+### v0.1.1 → v0.1.2 (đã phát hành)
 - User: mọi thứ hơi nhỏ → overlay phóng to ~1,3× (sticker 200→264 DIP, cửa sổ 380×580).
 - User (dark mode): sticker chìm trên nền desktop tối → thêm quầng sáng hồng sau sticker
   + `DropShadowEffect` màu hồng sáng thay bóng tối; `BitmapScalingMode=HighQuality`.
@@ -121,3 +124,12 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
   "siêu nhẹ" thì cân nhắc viết lại lớp overlay bằng Win32/GDI thuần.
 - Sticker nguồn độ phân giải cao hơn (hiện đa số 250–320px, phóng to trên màn
   HiDPI vẫn hơi mềm).
+
+## 9. Bàn giao 0.2.0
+
+- Báo cáo chi tiết: [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md).
+- Quan trọng: cache nay chỉ nhả sau idle 20s; không gọi EmptyWorkingSet/GC cưỡng bức.
+- Nguồn sticker chuẩn duy nhất: Windows Assets/Stickers. Chạy `python tools/prepare_assets.py` trước cả hai build.
+- Inbox chỉ xoá sau khi hiển thị hoặc sau quyết định expired/superseded; completion PATCH và delivery status đi cùng nhau.
+- Có hotkey/tray đáp lại và feedback Android. Không có notification nền Android.
+- UI Android theo bố cục prototype 4×3, không có ô gợi ý vàng/gợi ý theo giờ.

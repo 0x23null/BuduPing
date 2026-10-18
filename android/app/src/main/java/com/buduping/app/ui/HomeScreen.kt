@@ -4,6 +4,9 @@ import android.content.Context
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -49,6 +52,12 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var picker by remember { mutableStateOf<Emotion?>(null) }
     var replyType by remember { mutableStateOf<String?>(null) }
     var funTick by remember { mutableIntStateOf(0) }
+    var comboType by remember { mutableStateOf("") }
+    var comboCount by remember { mutableIntStateOf(0) }
+    var lastTap by remember { mutableLongStateOf(0L) }
+    val bursts = remember { mutableStateMapOf<String, Int>() }
+    LaunchedEffect(lastTap) { if (lastTap > 0) { delay(3_000); comboCount = 0 } }
+    val comboProgress by animateFloatAsState((comboCount / 5f).coerceIn(0f, 1f), tween(250), label = "combo")
     var catalogError by remember { mutableStateOf(false) }
     val catalog by produceState<List<StickerVariant>>(emptyList()) {
         value = withContext(Dispatchers.IO) {
@@ -84,6 +93,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         val message = text.trim().take(80)
         if (catalog.isEmpty()) return
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        val time = System.currentTimeMillis()
+        comboCount = if (comboType == type && time - lastTap <= 3_000) comboCount + 1 else 1
+        comboType = type; lastTap = time; bursts[type] = (bursts[type] ?: 0) + 1
         status = "sending"
         val key = repo.sendPing(pairId, type, message, prefs.senderName, variant) { id, error ->
             if (error == null) {
@@ -115,34 +127,46 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 AssistChip(onClick = { unpair = true }, label = { Text(PairCode.format(pairId)) })
-                TextButton(onClick = { composeOpen = !composeOpen }) { Text(if (composeOpen) "Thu gọn" else "Viết lời nhắn") }
+                Text(prefs.senderName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            AnimatedVisibility(composeOpen) {
-                Column {
+            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                Column(Modifier.padding(14.dp, 12.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        val label = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
+                        val level = if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
+                        Text(if (comboCount > 0) "$label · Lv$level" else "Một chạm, một chút thương",
+                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                        if (comboCount > 0) Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    LinearProgressIndicator(progress = { comboProgress }, modifier = Modifier.fillMaxWidth().height(5.dp),
+                        trackColor = MaterialTheme.colorScheme.primaryContainer)
+                }
+            }
+            LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
+                items(ordered, key = { it.type }) { emotion ->
+                    EmotionTile(emotion, catalog.firstOrNull { it.type == emotion.type }, emotion.type in favorites,
+                        enabled = catalog.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
+                        onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
+                }
+            }
+            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                Column(Modifier.padding(12.dp)) {
                     OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
-                        label = { Text("Nhắn gì đó…") }, modifier = Modifier.fillMaxWidth(),
-                        singleLine = true, supportingText = { Text("${text.length}/80") })
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        label = { Text("Kèm lời nhắn · tuỳ chọn") }, modifier = Modifier.fillMaxWidth(),
+                        singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
+                    Spacer(Modifier.height(6.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(PRESET_CHIPS) { chip -> AssistChip(onClick = { text = chip.take(80) }, label = { Text(chip) }) }
                     }
                 }
             }
-            if (!composeOpen && text.isNotBlank()) {
-                Text(text, maxLines = 1, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            Text("Gửi một chút thương.", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-            Text("Chạm để gửi · giữ để chọn sticker", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 12.dp))
+            Text("Giữ một cảm xúc để chọn sticker hoặc ghim.", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             if (catalogError) Text("Chưa tải được sticker. Mở lại ứng dụng để thử lại.", color = MaterialTheme.colorScheme.error)
-            LazyVerticalGrid(columns = GridCells.Fixed(3), modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 12.dp)) {
-                items(ordered, key = { it.type }) { emotion ->
-                    EmotionTile(emotion, catalog.firstOrNull { it.type == emotion.type }, emotion.type in favorites,
-                        enabled = catalog.isNotEmpty(), onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
-                }
-            }
             val statusLabel = when (status) {
                 "sending" -> if (connected) "Đang gửi…" else "Đang chờ mạng…"
                 "sent" -> if (online) "Đã gửi · chờ PC hiển thị" else "Đã gửi · chờ PC mở"
