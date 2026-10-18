@@ -6,7 +6,11 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/build-apk.yml'
+      - '.github/scripts/report-ci.sh'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -28,7 +32,14 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        id: gradle_build
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Report CI result
+        if: always()
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" apk "${{ steps.gradle_build.outcome }}" "$RUNNER_TEMP/build.log"
 
       - name: Upload BuduPing APK
         uses: actions/upload-artifact@v4

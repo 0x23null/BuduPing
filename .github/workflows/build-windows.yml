@@ -5,7 +5,11 @@ on:
     paths:
       - 'windows/**'
       - '.github/workflows/build-windows.yml'
+      - '.github/scripts/report-ci.sh'
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -25,11 +29,17 @@ jobs:
         run: dotnet restore
 
       - name: Publish single-file exe
+        id: publish
         run: >
           dotnet publish -c Release -r win-x64 --self-contained true
           /p:PublishSingleFile=true
           /p:IncludeNativeLibrariesForSelfExtract=true
           -o publish
+
+      - name: Report CI result
+        if: always()
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ steps.publish.outcome }}" ""
 
       - name: Upload BuduPing.exe
         uses: actions/upload-artifact@v4
