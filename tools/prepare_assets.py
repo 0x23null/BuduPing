@@ -12,6 +12,40 @@ SOURCE = ROOT / 'windows/BuduPing/Assets/Stickers'
 ANDROID = ROOT / 'android/app/src/main/assets'
 TYPES = {'miss', 'love', 'hug', 'kiss', 'tease', 'angry', 'sad', 'sorry', 'funny', 'cheer', 'hungry', 'goodnight'}
 
+# Which character(s) appear in each sticker, keyed by file stem.
+# "bubu" = brown bear, "dudu" = white panda (Yier). Curated by visual audit
+# 2026-10-19: every frame contact-sheet was eyeballed; single-character
+# stickers name exactly one character. Keep sorted alphabetically.
+CHARACTERS = {
+    'angry-01': ['bubu', 'dudu'],  # animation alternates: panda yelling, then bear yelling
+    'angry-02': ['bubu'],
+    'cheer-01': ['bubu', 'dudu'],
+    'cheer-03': ['bubu', 'dudu'],
+    'funny-01': ['dudu'],
+    'funny-02': ['bubu', 'dudu'],
+    'funny-03': ['bubu'],
+    'goodnight-01': ['bubu', 'dudu'],
+    'goodnight-03': ['bubu', 'dudu'],
+    'hug-02': ['bubu', 'dudu'],
+    'hug-03': ['bubu', 'dudu'],
+    'hug-04': ['bubu', 'dudu'],
+    'hungry-01': ['bubu', 'dudu'],
+    'hungry-02': ['dudu'],  # white panda eating ice cream
+    'kiss-01': ['bubu', 'dudu'],
+    'kiss-02': ['bubu', 'dudu'],
+    'kiss-03': ['bubu', 'dudu'],
+    'love-02': ['bubu'],  # brown bear with "i love you" baked caption
+    'love-03': ['dudu'],
+    'miss-01': ['bubu', 'dudu'],
+    'miss-03': ['bubu', 'dudu'],
+    'miss-04': ['dudu'],
+    'sad-01': ['dudu'],  # white panda crying a tear pool (not bubu)
+    'sad-02': ['dudu'],  # white panda alone with purple object
+    'sorry-01': ['dudu'],  # white panda bowing alone
+    'sorry-02': ['dudu'],
+    'tease-02': ['bubu', 'dudu'],
+}
+
 
 def inspect_gif(path):
     with Image.open(path) as gif:
@@ -64,12 +98,18 @@ def main():
             raise ValueError(f'Unknown emotion: {kind}')
         metadata, preview = inspect_gif(path)
         name = path.stem
+        characters = CHARACTERS.get(name)
+        if not characters:
+            raise ValueError(f'Missing character tag for sticker: {name}')
+        if any(c not in ('bubu', 'dudu') for c in characters):
+            raise ValueError(f'Bad character tag on {name}: {characters}')
         dest = target / kind / path.name
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, dest)
         preview.save(previews / f'{name}.png', optimize=True)
         catalog.append(dict(id=name, type=kind, file=f'{kind}/{path.name}',
                             thumbnail=f'previews/{name}.png',
+                            characters=characters,
                             sha256=hashlib.sha256(path.read_bytes()).hexdigest(), **metadata))
     assert {x['type'] for x in catalog} == TYPES
     data = json.dumps(catalog, ensure_ascii=False, indent=2) + '\n'

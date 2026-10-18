@@ -36,4 +36,16 @@ class AssetTests(unittest.TestCase):
                 self.assertTrue(0 <= y < b <= info['height'])
                 self.assertGreater(info['estimatedBytes'], 0)
 
+    def test_characters_map_covers_every_sticker(self):
+        files = list(assets.SOURCE.glob('*/*.gif'))
+        self.assertTrue(files)
+        valid = {'bubu', 'dudu'}
+        for path in files:
+            with self.subTest(stem=path.stem):
+                tags = assets.CHARACTERS.get(path.stem)
+                self.assertIsNotNone(tags, f'missing character tag for {path.stem}')
+                self.assertTrue(len(tags) >= 1)
+                self.assertEqual(set(tags), set(tags) & valid, f'unknown character in {path.stem}: {tags}')
+                self.assertEqual(tags, sorted(tags), f'keep character tags sorted in {path.stem}')
+
 if __name__ == '__main__': unittest.main()
