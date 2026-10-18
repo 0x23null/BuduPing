@@ -33,6 +33,12 @@ class Prefs(context: Context) {
         get() = (sp.getString("favorites", "hug,love,miss,kiss") ?: "").split(',').filter { it.isNotBlank() }
         set(value) = sp.edit().putString("favorites", value.distinct().take(4).joinToString(",")).apply()
 
+    /** Which character I am: "bubu" (brown bear) or "dudu" (white panda); null = not chosen yet. */
+    var myCharacter: String?
+        get() = sp.getString(KEY_CHARACTER, null)
+        set(value) = if (value == null) sp.edit().remove(KEY_CHARACTER).apply()
+            else sp.edit().putString(KEY_CHARACTER, value).apply()
+
     fun clearPair() {
         pendingKey = ""; deliveryStatus = ""
         sp.edit().remove(KEY_PAIR).apply()
@@ -60,5 +66,6 @@ class Prefs(context: Context) {
     companion object {
         private const val KEY_NAME = "sender_name"
         private const val KEY_PAIR = "pair_id"
+        private const val KEY_CHARACTER = "my_character"
     }
 }

@@ -45,7 +45,6 @@ fun PairScreen(initialName: String, onPaired: (name: String, pairId: String) -> 
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()
             .verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("BuduPing", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
-            Text("Một chạm, một chút thương.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             StickerArt(art, Modifier.size(156.dp).padding(vertical = 12.dp), "Bubu và Dudu")
             Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                 Column(Modifier.padding(20.dp)) {

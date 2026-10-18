@@ -50,6 +50,12 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var settings by remember { mutableStateOf(false) }
     var unpair by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf<Emotion?>(null) }
+    var myCharacter by remember { mutableStateOf(prefs.myCharacter) }
+    var characterPicker by remember { mutableStateOf(false) }
+    LaunchedEffect(myCharacter, catalog) {
+        // One-time "who are you" prompt: pops after pairing once the catalog is loaded.
+        if (myCharacter == null && catalog.isNotEmpty()) characterPicker = true
+    }
     var replyType by remember { mutableStateOf<String?>(null) }
     var funTick by remember { mutableIntStateOf(0) }
     var comboType by remember { mutableStateOf("") }
@@ -97,7 +103,10 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         comboCount = if (comboType == type && time - lastTap <= 2_000) comboCount + 1 else 1
         comboType = type; lastTap = time; bursts[type] = (bursts[type] ?: 0) + 1
         status = "sending"
-        val key = repo.sendPing(pairId, type, message, prefs.senderName, variant) { id, error ->
+        // Quick tap: pick a variant of MY character (solo first, then duo); the long-press
+        // picker sends its own explicit variant. The chosen variant always goes in the payload.
+        val chosen = if (variant.isBlank()) StickerCatalog.pickVariant(catalog, type, myCharacter)?.id ?: "" else variant
+        val key = repo.sendPing(pairId, type, message, prefs.senderName, chosen) { id, error ->
             if (error == null) {
                 prefs.bumpFun(type); funTick++
                 if (pendingKey == id && status == "sending") { status = "sent"; prefs.deliveryStatus = status }
@@ -124,10 +133,17 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 AssistChip(onClick = { unpair = true }, label = { Text(PairCode.format(pairId)) })
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(prefs.senderName, style = MaterialTheme.typography.labelMedium)
-                    Text(if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ",
-                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (myCharacter != null) {
+                        AssistChip(onClick = { characterPicker = true },
+                            leadingIcon = { StickerArt(characterPreview(catalog, myCharacter), Modifier.size(24.dp), null) },
+                            label = { Text(characterName(myCharacter)) })
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(prefs.senderName, style = MaterialTheme.typography.labelMedium)
+                        Text(if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
@@ -136,7 +152,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         val label = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
                         val level = if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
-                        Text(if (comboCount > 0) "$label · Lv$level" else "Một chạm, một chút thương",
+                        val idleText = prefs.senderName + " · " +
+                            if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
+                        Text(if (comboCount > 0) "$label · Lv$level" else idleText,
                             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                         if (comboCount > 0) Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
                     }
@@ -150,7 +168,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
                 items(ordered, key = { it.type }) { emotion ->
                     val preview = if (emotion.type == "love") catalog.firstOrNull { it.id == "love-02" } else null
-                    EmotionTile(emotion, preview ?: catalog.firstOrNull { it.type == emotion.type }, emotion.type in favorites,
+                    EmotionTile(emotion, preview ?: StickerCatalog.allowedFor(catalog, emotion.type, myCharacter).firstOrNull(),
+                        emotion.type in favorites,
                         enabled = catalog.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
                         onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
                 }
@@ -189,7 +208,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         }
     }
     picker?.let { emotion ->
-        VariantPicker(emotion, catalog.filter { it.type == emotion.type }, emotion.type in favorites,
+        VariantPicker(emotion, StickerCatalog.allowedFor(catalog, emotion.type, myCharacter), emotion.type in favorites,
             onFavorite = {
                 favorites = if (emotion.type in favorites) favorites - emotion.type else (favorites + emotion.type).takeLast(4)
                 prefs.favorites = favorites
@@ -201,6 +220,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 Modifier.fillMaxWidth().height(220.dp), "Một cái ôm từ PC", animated = isForeground) },
             confirmButton = { TextButton(onClick = { replyType = null }) { Text("Nhận rồi") } })
     }
+    if (characterPicker) CharacterPicker(catalog,
+        onPick = { kind -> prefs.myCharacter = kind; myCharacter = kind; characterPicker = false },
+        onDismiss = { characterPicker = false })
     if (settings) SettingsDialog(prefs, onDismiss = { settings = false }, onChangeCode = { settings = false; onChangeCode() })
     if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Huỷ ghép cặp?") },
         text = { Text("Mã ${PairCode.format(pairId)} sẽ bị quên trên điện thoại này.") },
