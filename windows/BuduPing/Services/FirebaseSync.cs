@@ -16,8 +16,7 @@ public sealed class FirebaseSync : IDisposable
     private readonly HttpClient _stream = new() { BaseAddress = new Uri(BaseUrl), Timeout = Timeout.InfiniteTimeSpan };
     private readonly HttpClient _rest = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(15) };
     private readonly CancellationTokenSource _cts = new();
-    private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
-    private readonly Queue<string> _seenOrder = new();
+    private readonly RecentEventIds _seen = new();
     private readonly Channel<(PingEvent Ping, string Status)> _completed = Channel.CreateUnbounded<(PingEvent, string)>(
         new UnboundedChannelOptions { SingleReader = true });
     private bool _started, _disposed;
@@ -103,12 +102,7 @@ public sealed class FirebaseSync : IDisposable
         static string Str(JsonElement e, string k, int max)
             => e.TryGetProperty(k, out var p) && p.ValueKind == JsonValueKind.String
                 ? (p.GetString() ?? "")[..Math.Min((p.GetString() ?? "").Length, max)] : "";
-        lock (_seen)
-        {
-            if (!_seen.Add(id)) return;
-            _seenOrder.Enqueue(id);
-            while (_seenOrder.Count > 2000) _seen.Remove(_seenOrder.Dequeue());
-        }
+        if (!_seen.TryRemember(id)) return;
         var ping = new PingEvent
         {
             Id = id, Type = Str(data, "type", 24), Text = Str(data, "text", 80),
@@ -120,7 +114,7 @@ public sealed class FirebaseSync : IDisposable
 
     public void Defer(string id)
     {
-        lock (_seen) _seen.Remove(id);
+        _seen.Forget(id);
         Interlocked.Exchange(ref _deferred, 1);
     }
 

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -143,7 +144,7 @@ public partial class OverlayWindow : Window
         _isShowing = false; _isHiding = false;
         Visibility = Visibility.Collapsed;
         ClearParticles();
-        ImageBehavior.SetAnimatedSource(StickerImage, null);
+        SetAnimationSource(StickerImage, null);
         _stickers.ReleaseDecoded();
     }
 
@@ -219,7 +220,7 @@ public partial class OverlayWindow : Window
             _app.DeferPing(ping);
             return;
         }
-        ImageBehavior.SetAnimatedSource(StickerImage, bmp);
+        SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
         string header = StickerService.LabelFor(ping.Type);
         if (!string.IsNullOrWhiteSpace(ping.From)) header += " · " + ping.From.Trim();
@@ -262,6 +263,15 @@ public partial class OverlayWindow : Window
         RestartHideTimer();
     }
 
+    private void SetAnimationSource(Image image, BitmapImage? source)
+    {
+        var old = ImageBehavior.GetAnimatedSource(image) as BitmapImage;
+        if (ReferenceEquals(old, source)) return;
+        ImageBehavior.SetAnimatedSource(image, null);
+        if (old != null) _stickers.Unpin(old);
+        if (source != null) { _stickers.Pin(source); ImageBehavior.SetAnimatedSource(image, source); }
+    }
+
     private void NormalizeSticker(int width, int height)
     {
         var info = _stickers.LastInfo;
@@ -296,7 +306,7 @@ public partial class OverlayWindow : Window
         if (_activeCount % 4 == 0 && _current != null)
         {
             var variant = _stickers.GetRandom(_activeType);
-            if (variant != null) { ImageBehavior.SetAnimatedSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
+            if (variant != null) { SetAnimationSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
         }
         ComboBadgeText.Text = "x" + _activeCount;
         ComboBadge.Visibility = Visibility.Visible;
@@ -348,7 +358,7 @@ public partial class OverlayWindow : Window
             _isHiding = false;
             ClearParticles();
             // Nhả frame GIF đã decode + trim working set → idle RAM thấp
-            ImageBehavior.SetAnimatedSource(StickerImage, null);
+            SetAnimationSource(StickerImage, null);
             if (!_app.Config.DiscreetMode && !_app.Config.HideMessageText && _queue.Take() is { } next) Display(next);
             else
             {
@@ -534,7 +544,7 @@ public partial class OverlayWindow : Window
     private void Recycle(Particle p)
     {
         ParticleCanvas.Children.Remove(p.El);
-        if (p.El is Image image) ImageBehavior.SetAnimatedSource(image, null);
+        if (p.El is Image image) { SetAnimationSource(image, null); image.Source = null; }
         if (p.El is TextBlock glyph && _glyphPool.Count < MaxParticles) _glyphPool.Push(glyph);
         if (_recycled.Count < MaxParticles) _recycled.Push(p);
     }
@@ -725,10 +735,11 @@ public partial class OverlayWindow : Window
     {
         for (int i = 0; i < 3; i++)
         {
-            var bmp = _stickers.GetRandom(_activeType);
+            var bmp = ImageBehavior.GetAnimatedSource(StickerImage);
             var img = new Image { Width = 68, Height = 68, IsHitTestVisible = false };
             RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-            if (bmp != null) ImageBehavior.SetAnimatedSource(img, bmp);
+            // Reuse one static frame; three extra GIF decoders would inflate combo peak memory.
+            if (bmp != null) img.Source = bmp;
             var p = AddParticle(img, -70 - i * 85, Height - 100);
             p.Vx = 150; p.Vy = 0;
             p.Life = 2.8; p.FadeIn = 0.08;

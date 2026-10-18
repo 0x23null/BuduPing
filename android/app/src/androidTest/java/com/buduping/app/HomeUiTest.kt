@@ -1,6 +1,8 @@
 package com.buduping.app
 
 import android.graphics.Bitmap
+import android.content.ContentValues
+import android.provider.MediaStore
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -10,20 +12,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.filters.SdkSuppress
 import com.buduping.app.ui.*
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
 
+@SdkSuppress(minSdkVersion = 29)
 class HomeUiTest {
     @get:Rule val compose = createComposeRule()
 
     private fun capture(name: String) {
         compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val dir = File(instrumentation.targetContext.getExternalFilesDir(null), "ui").apply { mkdirs() }
         val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
-        File(dir, "$name.png").outputStream().use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        // Public emulator media survives Gradle uninstalling the test target after the run.
+        val resolver = instrumentation.targetContext.contentResolver
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "$name.png")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/png")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/BuduPingUI/")
+        }
+        val uri = requireNotNull(resolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values))
+        requireNotNull(resolver.openOutputStream(uri)).use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     private fun show(dark: Boolean, scale: Float, width: Int = 360) {

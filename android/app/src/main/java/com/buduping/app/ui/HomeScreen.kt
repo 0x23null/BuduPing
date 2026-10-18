@@ -56,7 +56,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var comboCount by remember { mutableIntStateOf(0) }
     var lastTap by remember { mutableLongStateOf(0L) }
     val bursts = remember { mutableStateMapOf<String, Int>() }
-    LaunchedEffect(lastTap) { if (lastTap > 0) { delay(3_000); comboCount = 0 } }
+    LaunchedEffect(lastTap) { if (lastTap > 0) { delay(2_000); comboCount = 0 } }
     val comboProgress by animateFloatAsState((comboCount / 5f).coerceIn(0f, 1f), tween(250), label = "combo")
     var catalogError by remember { mutableStateOf(false) }
     val catalog by produceState<List<StickerVariant>>(emptyList()) {
@@ -94,7 +94,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         if (catalog.isEmpty()) return
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         val time = System.currentTimeMillis()
-        comboCount = if (comboType == type && time - lastTap <= 3_000) comboCount + 1 else 1
+        comboCount = if (comboType == type && time - lastTap <= 2_000) comboCount + 1 else 1
         comboType = type; lastTap = time; bursts[type] = (bursts[type] ?: 0) + 1
         status = "sending"
         val key = repo.sendPing(pairId, type, message, prefs.senderName, variant) { id, error ->

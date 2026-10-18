@@ -27,16 +27,16 @@ Work branch: `codex/buduping-0.2`. Status: implementation under CI validation; n
 - Android: soft rose/cocoa light and dark themes; actual static character thumbnails; 4-column grid; compact combo progress; permanent optional message composer; long-press variant picker with animated preview on Android 9+; up to four manually pinned favorites; connection status has text and accessibility semantics.
 - Sending button springs back and emits a short vector heart. No synthetic network delay is added.
 - WPF: 680 ms spring entrance, 100 ms delayed bubble scaling, combo badge bounce, emotion-specific pose transforms and colored local glow. Combo changes variant every fourth tap and stays within a bounded scale and particle count.
-- Settings: native appearance, monitor/corner/size controls, privacy, reduced motion, sound, autostart and reply fallback.
+- Settings: rounded native controls and switches, a visual placement preview, monitor/corner/size controls, privacy, reduced motion, sound, autostart and reply fallback. Android name and pairing are now one setup screen; the old NameScreen source is unused.
 - Shared catalog is built from `windows/BuduPing/Assets/Stickers` ONLY. `tools/prepare_assets.py` scans all frames for alpha-union bounds, generates padded static thumbnails, copies the curated GIF set to Android, and embeds metadata in Windows. Original GIF bytes are preserved.
 
 ### Performance
 
 - Decoded cache uses an estimated 32 MiB budget (active GIF may exceed this) and six-entry ceiling; clears after 20 seconds of true idle rather than after every display.
-- Hidden GIF controllers are detached. Particle state and text glyphs are reused; geometry remains bounded to the corner.
+- Active GIF sources are reference-pinned so budget eviction cannot dispose a playing stream. Mini parade uses one shared static frame rather than three extra GIF decoders. Hidden GIF controllers are detached. Particle state and text glyphs are reused; geometry remains bounded to the corner.
 - Removed forced GC / EmptyWorkingSet. Optional `BUDUPING_DIAGNOSTICS=1` writes bounded local JSONL with private bytes, working set, managed bytes and receive-to-composition timing. It contains no message text or pair codes. This timing does not measure end-to-end network latency.
 - Settings are created lazily. Presence uses async PeriodicTimer; SSE ReadLine honors cancellation.
-- v0.1.3 appeared during work (`e63894a`). Its overlapping 10-note SoundService is being retained rather than reverting to the old SoundPlayer cutoff behavior.
+- v0.1.3 appeared during work (`e63894a`). Its overlapping 10-note SoundService is retained rather than reverting to the old SoundPlayer cutoff behavior.
 
 ## Wire contract (backward compatible additions)
 
@@ -68,10 +68,11 @@ Presence stays `{online:true,ts:<server timestamp>}`. Android locally ages it ag
 
 ## Validation
 
-- Local Roslyn/.NET 8 core checks: **545 assertions passed** (queue order/capacity, no lost message in combo, TTL, variant preservation, pairing checksum).
+- Local Roslyn/.NET 8 core checks: **550 assertions passed** (queue order/capacity, no lost message in combo, TTL, variant preservation, pairing checksum).
 - Local Python asset checks: **2 tests passed**, including full-animation bounds beyond the first frame and checks on every curated GIF.
 - Local XML parsing: all XAML and project XML valid.
-- Local full dotnet CLI/MSBuild is unavailable due to this container's process metadata restrictions; direct Roslyn compiled and ran the core checks. Full native builds must pass GitHub Actions.
+- Local full dotnet CLI/MSBuild is unavailable due to this container's process metadata restrictions; direct Roslyn compiled and ran the core checks. Full native builds are validated by GitHub Actions. The APK and EXE passed at `7cf2cb4`, `c7f39bf` and `1a26d02`; subsequent changes are checked again.
+- Native Windows settings screenshots rendered successfully at `1a26d02` (run `39154366713`). The offline `--ui-review` mode never loads personal config or connects to Firebase.
 - Initial Windows CI exposed MSYS converting `/p:` arguments; changed to `-p:`. SDK is pinned to .NET 8 via global.json.
 - CI outcomes and exact SHAs will be added after final validation. Read the matching SHA in ci-reports before interpreting a report, since other agents also push builds.
 
@@ -91,3 +92,9 @@ Presence stays `{online:true,ts:<server timestamp>}`. Android locally ages it ag
 - Automatic fullscreen/presentation detection, draggable placement preview, quiet-hour schedule, custom embedded typography.
 - A native Win32 renderer rewrite only after comparable measurements justify it.
 - Firebase production authentication/rules redesign is separate work; no live rules were changed.
+
+## Release procedure and signing
+
+- Bumping root VERSION on main triggers the release pipeline. Both native builds and required core/asset checks must pass before one publish job attaches APK and EXE together. Tag-based releases and workflow_dispatch remain supported.
+- 0.2.0 is published as a prerelease for device feedback, not a benchmark claim.
+- APK is debug-signed on an ephemeral runner. It may require uninstalling an older independently signed APK, which clears name/pair preferences. Stable release signing remains open; no private signing key was committed.

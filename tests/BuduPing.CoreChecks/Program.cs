@@ -32,6 +32,15 @@ internal static class Program
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b", "new text"), .1), "New text never disappears into a combo");
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b") with { Variant = "hug-02" }, .1), "Explicit variant is respected");
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b"), 3), "Expired combo window starts a new display");
+        var seen = new RecentEventIds(3);
+        Check(seen.TryRemember("x"), "Fresh event is remembered");
+        Check(!seen.TryRemember("x"), "Duplicate event is ignored");
+        seen.Forget("x");
+        Check(seen.TryRemember("x"), "Deferred event can be retried");
+        seen.TryRemember("y"); seen.TryRemember("z");
+        Check(!seen.TryRemember("x"), "Evicting a stale generation does not forget a new generation");
+        seen.TryRemember("w");
+        Check(seen.TryRemember("x"), "Oldest actual generation expires from the bounded window");
         long now = 1_000_000_000;
         Check(PingPolicy.IsExpired(Ping("a") with { Ts = now - 600_001 }, now), "Old ambient tap expires");
         Check(!PingPolicy.IsExpired(Ping("a", "text") with { Ts = now - 600_001 }, now), "Text has a longer TTL");
