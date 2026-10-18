@@ -33,6 +33,8 @@ public partial class App : Application
     private DateTime _lastReply = DateTime.MinValue;
     public bool IsExiting => _exiting;
     public bool HotkeyAvailable => _hotkey?.Registered == true;
+    public bool CanReply => _overlay?.LastPing != null;
+    public int PendingCount => _overlay?.PendingCount ?? 0;
     private readonly Random _rng = new();
     private bool _exiting;
 
@@ -40,6 +42,11 @@ public partial class App : Application
     {
         base.OnStartup(e);
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        if (e.Args.Length == 2 && e.Args[0] == "--ui-review")
+        {
+            RenderUiReview(e.Args[1]);
+            return;
+        }
 
         Config = AppConfigStore.Load();
         AppConfigStore.ApplyAutostart(Config);
@@ -61,6 +68,43 @@ public partial class App : Application
         _hotkey.Pressed += () => _ = ReplyToLastAsync();
         MemoryTrim.Record("startup", _stickers.DecodedBytes);
         if (!Config.HasSeenSetup) { OpenSettings(); Config.HasSeenSetup = true; AppConfigStore.Save(Config); }
+    }
+
+    // Offline screenshot mode for CI. Never loads user config, writes presence, or starts Firebase.
+    private void RenderUiReview(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        Config = new AppConfig { PairCode = PairCode.Generate(), HasSeenSetup = true };
+        _stickers = new StickerService(Path.Combine(AppContext.BaseDirectory, "Assets", "Stickers"));
+        _stickers.Preload();
+        _hotkey = new ReplyHotkey();
+        _settings = new SettingsWindow(this);
+        _settings.RefreshUi(); _settings.Show();
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(800) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            try
+            {
+                SaveWindow("settings-top.png");
+                if (_settings.FindName("SettingsScroll") is ScrollViewer scroll) scroll.ScrollToEnd();
+                _settings.UpdateLayout();
+                SaveWindow("settings-options.png");
+            }
+            finally { _exiting = true; _hotkey.Dispose(); Shutdown(); }
+        };
+        timer.Start();
+        void SaveWindow(string name)
+        {
+            _settings.UpdateLayout();
+            var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
+                (int)Math.Ceiling(_settings.ActualWidth), (int)Math.Ceiling(_settings.ActualHeight),
+                96, 96, System.Windows.Media.PixelFormats.Pbgra32);
+            bitmap.Render(_settings);
+            var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
+            encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
+            using var output = File.Create(Path.Combine(directory, name)); encoder.Save(output);
+        }
     }
 
     // ================= Tray =================
@@ -129,7 +173,7 @@ public partial class App : Application
         _sync = sync;
         sync.PingReceived += ping => Dispatcher.InvokeAsync(() =>
         {
-            if (ReferenceEquals(_sync, sync)) _overlay?.ShowPing(ping);
+            if (ReferenceEquals(_sync, sync)) { _overlay?.ShowPing(ping); _settings?.RefreshDeliveryState(); }
         });
         sync.Start();
         _ = _sync.PutPresenceAsync(); // báo online ngay
@@ -158,7 +202,11 @@ public partial class App : Application
         catch (OperationCanceledException) { }
     }
 
-    public void CompletePing(PingEvent ping, string status) => _sync?.Complete(ping, status);
+    public void CompletePing(PingEvent ping, string status)
+    {
+        _sync?.Complete(ping, status);
+        _settings?.RefreshDeliveryState();
+    }
     public void DeferPing(PingEvent ping) { if (!ping.IsLocal) _sync?.Defer(ping.Id); }
     public void RefreshDeferred() { if (_sync != null) _ = _sync.RefreshDeferredAsync(); }
 

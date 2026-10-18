@@ -90,6 +90,7 @@ public partial class OverlayWindow : Window
             _stickers.ReleaseDecoded();
             MemoryTrim.Record("idle", _stickers.DecodedBytes);
         };
+        _idleTimer.Start();
         _summaryTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
         _summaryTimer.Tick += (_, _) =>
         {
@@ -177,6 +178,7 @@ public partial class OverlayWindow : Window
             _activeCount++;
             _lastTapUtc = now;
             if (!_app.Config.ReducedMotion) ApplyComboVisual();
+            else _app.PlayPop(_activeCount);
             _app.CompletePing(ping, "displayed");
             RestartHideTimer();
             return;
@@ -327,10 +329,10 @@ public partial class OverlayWindow : Window
 
         int generation = _generation;
         var sb = new Storyboard();
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(180));
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180));
         Storyboard.SetTarget(fade, ContentPanel);
         Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(180))
+        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };

@@ -56,6 +56,13 @@ class HomeUiTest {
         capture("variant-picker")
     }
 
+    @Test fun setupScreen() {
+        compose.setContent { BuduPingTheme { PairScreen("", { _, _ -> }) } }
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("stickerArt", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("Kết nối").assertIsNotEnabled()
+        capture("setup-light")
+    }
+
     @Test fun darkHome() { show(true, 1f, 412); capture("home-dark-412") }
     @Test fun narrowLargeText() { show(false, 1.3f, 320); capture("home-large-text-320") }
 }

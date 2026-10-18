@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.buduping.app.ui.BuduPingTheme
 import com.buduping.app.ui.HomeScreen
-import com.buduping.app.ui.NameScreen
 import com.buduping.app.ui.PairScreen
 
 class MainActivity : ComponentActivity() {
@@ -26,15 +25,10 @@ class MainActivity : ComponentActivity() {
             BuduPingTheme {
                 var screen by remember { mutableStateOf(initialScreen(prefs)) }
                 when (screen) {
-                    Screen.Name -> NameScreen(
-                        onDone = { name ->
+                    Screen.Name, Screen.Pair -> PairScreen(
+                        initialName = prefs.senderName,
+                        onPaired = { name, pairId ->
                             prefs.senderName = name
-                            screen = Screen.Pair
-                        },
-                    )
-
-                    Screen.Pair -> PairScreen(
-                        onPaired = { pairId ->
                             prefs.pairId = pairId
                             screen = Screen.Home
                         },

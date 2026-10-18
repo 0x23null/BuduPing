@@ -39,13 +39,7 @@ jobs:
           target: google_apis
           profile: pixel_2
           disable-animations: true
-          script: |
-            cd android
-            chmod +x gradlew
-            ./gradlew connectedDebugAndroidTest --no-daemon
-      - name: Collect native screenshots
-        if: always()
-        run: adb pull /sdcard/Android/data/com.buduping.app/files/ui ui-screenshots || true
+          script: cd android && chmod +x ./gradlew && (./gradlew connectedDebugAndroidTest --no-daemon; BUDU_TEST_STATUS=$?; adb pull /sdcard/Android/data/com.buduping.app/files/ui ../ui-screenshots || true; exit "$BUDU_TEST_STATUS")
       - uses: actions/upload-artifact@v4
         if: always()
         with:

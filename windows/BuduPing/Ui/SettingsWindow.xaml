@@ -42,7 +42,7 @@
         </Style>
         <Style TargetType="ComboBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Margin" Value="0,4,0,10"/></Style>
     </Window.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="28,24">
         <TextBlock Text="BuduPing" FontSize="28" FontWeight="SemiBold"/>
         <TextBlock Text="Một chạm, một chút thương." Foreground="#746057" Margin="0,4,0,20"/>
@@ -85,8 +85,8 @@
             <ComboBoxItem Content="Nhỏ" Tag="0.75"/><ComboBoxItem Content="Vừa" Tag="1"/><ComboBoxItem Content="Lớn" Tag="1.25"/>
         </ComboBox>
         <TextBlock x:Name="HotkeyStatus" TextWrapping="Wrap" Foreground="#746057" Margin="0,12,0,8"/>
-        <Button Content="Gửi ôm đáp lại" Click="ReplyButton_Click"/>
-        <Button Content="Mở xem lời nhắn đang chờ" Click="PendingButton_Click"/>
+        <Button x:Name="ReplyButton" Content="Gửi ôm đáp lại" Click="ReplyButton_Click"/>
+        <Button x:Name="PendingButton" Content="Mở xem lời nhắn đang chờ" Click="PendingButton_Click"/>
         <Button Content="Thử sticker" Click="TestButton_Click" Background="#A93F65" Foreground="White"/>
         <TextBlock Text="BuduPing 0.2.0 · Đóng cửa sổ để tiếp tục chạy trong khay hệ thống."
             TextWrapping="Wrap" Foreground="#746057" FontSize="12" Margin="0,16,0,8"/>

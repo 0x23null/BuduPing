@@ -32,9 +32,16 @@ public partial class SettingsWindow : Window
         ScaleCombo.SelectedValue = _app.Config.OverlayScale.ToString(CultureInfo.InvariantCulture);
         HotkeyStatus.Text = _app.HotkeyAvailable ? "Ctrl+Alt+Space: gửi một cái ôm đáp lại." :
             "Phím tắt đang được ứng dụng khác sử dụng. Bạn vẫn có thể đáp lại bằng nút dưới đây hoặc menu tray.";
+        RefreshDeliveryState();
         PreviewSticker.Source = _app.GetPreviewSticker();
         UpdatePreview();
         _suspendEvents = false;
+    }
+    public void RefreshDeliveryState()
+    {
+        ReplyButton.IsEnabled = _app.CanReply;
+        PendingButton.IsEnabled = _app.PendingCount > 0;
+        PendingButton.Content = _app.PendingCount > 0 ? $"Mở xem {_app.PendingCount} cảm xúc đang chờ" : "Chưa có lời nhắn đang chờ";
     }
     private void UpdatePreview()
     {

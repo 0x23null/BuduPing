@@ -51,6 +51,20 @@ jobs:
           set -o pipefail
           dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish 2>&1 | tee "$RUNNER_TEMP/build.log"
 
+      - name: Render native settings without a Firebase connection
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'buduping-ui'
+          $process = Start-Process -FilePath './publish/BuduPing.exe' -ArgumentList @('--ui-review', $target) -PassThru
+          if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'UI review timed out' }
+          if ($process.ExitCode -ne 0) { throw 'UI review process failed' }
+          if (-not (Test-Path (Join-Path $target 'settings-top.png'))) { throw 'Missing native screenshot' }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BuduPing-windows-ui-review
+          path: ${{ runner.temp }}/buduping-ui
+
       - name: Report CI result
         if: always()
         shell: bash
