@@ -129,9 +129,12 @@ public partial class App : Application
                     width = visual.ActualWidth, height = visual.ActualHeight, scaleX = scale.ScaleX, scaleY = scale.ScaleY,
                     slideY = slide.Y, panelHeight = panel.ActualHeight, panelWidth = panel.ActualWidth,
                     dpi = System.Windows.Media.VisualTreeHelper.GetDpi(visual).PixelsPerDip,
+                    burstX = _overlay.LastBurstCenter.X, burstY = _overlay.LastBurstCenter.Y,
                 }));
                 if (Math.Abs(scale.ScaleX - 1) > .01 || Math.Abs(scale.ScaleY - 1) > .01 || Math.Abs(slide.Y) > .1)
                     throw new InvalidOperationException("The native entrance did not settle at full size and position.");
+                if (_overlay.LastBurstCenter.Y < visual.ActualHeight / 2)
+                    throw new InvalidOperationException("Particles were placed outside the settled sticker area.");
             }
             var bitmap = new System.Windows.Media.Imaging.RenderTargetBitmap(
                 (int)Math.Ceiling(visual.ActualWidth), (int)Math.Ceiling(visual.ActualHeight),

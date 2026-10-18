@@ -3,7 +3,7 @@
 Một chạm trên Android, một sticker Bubu & Dudu xuất hiện trên máy Windows của người thương.
 Hai ứng dụng native dùng Firebase Realtime Database và mã ghép cặp `XXXX-XXXX`, không cần đăng nhập.
 
-## Bản 0.2.0 preview
+## Bản 0.2.1 preview
 
 - **Android / Kotlin + Compose:** lưới 12 cảm xúc, hình sticker thật, lời nhắn tuỳ chọn, giữ để chọn biến thể hoặc ghim. Có giao diện sáng/tối và phản hồi ngay khi chạm.
 - **Windows / .NET 8 WPF:** sticker nảy vào góc màn hình, combo đổi biến thể, tiếng pop chồng lớp; có tuỳ chọn vị trí, kích thước, giảm chuyển động và ẩn nội dung.
@@ -38,6 +38,6 @@ Sửa `VERSION` trên main sẽ khởi động pipeline release; APK và EXE ch�
 ## Tài liệu cho người hoặc AI phát triển tiếp
 
 - [DEV-NOTES](docs/DEV-NOTES.md): lịch sử, các lỗi từng gặp và yêu cầu không được phá.
-- [Báo cáo bàn giao 0.2.0](docs/DEVELOPMENT-REPORT-0.2.0.md): code đã thay đổi, hợp đồng dữ liệu, kết quả kiểm tra và phần chưa làm.
+- [Báo cáo bàn giao 0.2.1](docs/DEVELOPMENT-REPORT-0.2.1.md): code đã thay đổi, hợp đồng dữ liệu, kết quả kiểm tra và phần chưa làm.
 - [Release notes](docs/RELEASE-NOTES.md), [mã ghép cặp](docs/pair-code.md), [Firebase](docs/firebase-setup.md).
 - Nhánh `ci-reports` chứa log build; luôn kiểm tra SHA vì nhiều người/AI có thể build cùng lúc.

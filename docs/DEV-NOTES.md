@@ -2,8 +2,9 @@
 
 Tài liệu bàn giao ngữ cảnh cho bất kỳ ai (người hoặc AI) tiếp tục phát triển BuduPing.
 Cập nhật: 2026-10-19. v0.1.2 đã phát hành; v0.1.3 xuất hiện trên main trong lúc phát triển.
-Nhánh `codex/buduping-0.2` đang triển khai bản nâng cấp: đọc [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md)
+Bản hoàn thiện UI nằm trên nhánh `codex/buduping-0.2`, phiên bản 0.2.1: đọc [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md)
 để biết code đã thay đổi, hợp đồng feedback, kết quả kiểm chứng và phần cần test máy thật.
+Tag 0.2.0 được tiến trình khác tạo trong lúc kiểm tra; 0.2.1 bổ sung sửa lỗi từ ảnh native.
 Không dùng các dòng lịch sử "đang làm" bên dưới để suy ra trạng thái release.
 
 ## 1. Tổng quan
@@ -91,7 +92,7 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
   `tease` mới có 1 mẫu (`tease-02`); một file cười lớn bị xếp nhầm vào cheer đã chuyển
   về `funny-03`; `cheer-03` là GIF ngang nên nhân vật hơi nhỏ khi hiện.
 
-### v0.1.2 → v0.1.3 (đang làm)
+### v0.1.2 → v0.1.3 (đã phát hành)
 - User: tiếng pop vẫn không tạo cảm giác spam → **thay toàn bộ engine tiếng**:
   bỏ SoundPlayer (chỉ 1 tiếng tại một thời điểm, spam là cụt) → `SoundService`
   với **thang 10 nốt** `pop01..pop10.wav` (cao dần theo độ dài combo), mỗi nốt một

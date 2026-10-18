@@ -31,7 +31,7 @@ public static class DisplayPlacement
         var d = displays.FirstOrDefault(x => x.Device == device) ?? displays.FirstOrDefault();
         if (d == null) return;
         double factor = d.Dpi / 96.0;
-        int w = (int)Math.Round(380 * scale * factor), h = (int)Math.Round(580 * scale * factor);
+        int w = (int)Math.Round(window.Width * factor), h = (int)Math.Round(window.Height * factor);
         int gap = (int)(16 * factor);
         int x = corner.EndsWith("Left", StringComparison.Ordinal) ? d.Left + gap : d.Right - w - gap;
         int y = corner.StartsWith("Top", StringComparison.Ordinal) ? d.Top + gap : d.Bottom - h - gap;
