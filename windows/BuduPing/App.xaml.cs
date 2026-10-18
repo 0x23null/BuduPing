@@ -55,7 +55,7 @@ public partial class App : Application
         _stickers = new StickerService(stickersRoot);
         _stickers.Preload(); // chỉ nạp bytes GIF nhúng; decode lười khi hiện (nhẹ RAM)
 
-        LoadPopSound();
+        _sounds = new SoundService();
 
         _overlay = new OverlayWindow(_stickers, this);
 

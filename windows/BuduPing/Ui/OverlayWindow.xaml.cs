@@ -300,7 +300,8 @@ public partial class OverlayWindow : Window
         }
         ComboBadgeText.Text = "x" + _activeCount;
         ComboBadge.Visibility = Visibility.Visible;
-        PopSticker(Math.Min(1.3, 1 + .04 * _activeCount));
+        // Càng bấm càng TO (công thức tăng trưởng của main v0.1.3): +7% mỗi tap, trần 1.85x
+        PopSticker(Math.Min(1 + 0.07 * (_activeCount - 1), 1.85));
         if (_activeCount >= 5 && !_lv3Done)
         {
             _lv3Done = true; SpawnMiniParade(); BurstFor(_activeType, StickerCenter(), 3);
