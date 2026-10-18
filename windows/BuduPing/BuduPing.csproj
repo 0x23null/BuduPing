@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>BuduPing</AssemblyName>
+    <RootNamespace>BuduPing</RootNamespace>
+    <ApplicationIcon>Assets\tray.ico</ApplicationIcon>
+    <!-- Publish single-file: dotnet publish -c Release -r win-x64 with self-contained false and PublishSingleFile=true -->
+    <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WpfAnimatedGif" Version="2.0.2" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="1.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- pop.wav nhúng vào assembly để phát âm thanh không cần file rời -->
+    <EmbeddedResource Include="Assets\Sounds\pop.wav" />
+    <EmbeddedResource Include="Assets\tray.ico" />
+    <!-- Sticker GIF: copy ra cạnh exe, teammate thả file vào là chạy -->
+    <Content Include="Assets\Stickers\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <None Include="Assets\Stickers\.gitkeep" />
+  </ItemGroup>
+
+</Project>

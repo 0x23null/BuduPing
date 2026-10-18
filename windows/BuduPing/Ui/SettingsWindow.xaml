@@ -1,0 +1,33 @@
+<Window x:Class="BuduPing.Ui.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="BuduPing — Cài đặt" Width="400" SizeToContent="Height"
+        ResizeMode="NoResize" WindowStartupLocation="CenterScreen">
+    <StackPanel Margin="24,20">
+        <TextBlock Text="Mã ghép cặp" FontSize="14" Foreground="#888"/>
+        <TextBlock Text="Nhập mã này vào app điện thoại (chỉ 1 lần):"
+                   FontSize="12" Foreground="#888" Margin="0,2,0,6"/>
+        <TextBlock x:Name="CodeText" Text="····-····" FontSize="38" FontWeight="Bold"
+                   HorizontalAlignment="Center" Margin="0,4,0,8"
+                   FontFamily="Consolas" Foreground="#D94F70"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
+            <Button x:Name="CopyButton" Content="📋 Copy mã" Padding="14,6" Margin="0,0,8,0"
+                    Click="CopyButton_Click"/>
+            <Button x:Name="RegenButton" Content="🎲 Gen mã mới" Padding="14,6"
+                    Click="RegenButton_Click"/>
+        </StackPanel>
+
+        <CheckBox x:Name="SoundCheck" Content="Bật tiếng hiệu ứng (pop) khi sticker hiện"
+                  Margin="0,4" Checked="SoundCheck_Changed" Unchecked="SoundCheck_Changed"/>
+        <CheckBox x:Name="AutostartCheck" Content="Chạy khi khởi động Windows"
+                  Margin="0,4" Checked="AutostartCheck_Changed" Unchecked="AutostartCheck_Changed"/>
+
+        <Button x:Name="TestButton" Content="✨ Test sticker" Padding="14,8" Margin="0,14,0,0"
+                Click="TestButton_Click"/>
+
+        <TextBlock Margin="0,16,0,0" FontSize="12" Foreground="#999" TextWrapping="Wrap"
+                   Text="Đóng cửa sổ này app vẫn chạy ngầm trong khay hệ thống. Muốn thoát hẳn: chuột phải icon 💗 ở tray → Thoát BuduPing."/>
+        <Button Content="Đóng" Padding="14,6" Margin="0,10,0,0"
+                HorizontalAlignment="Right" Click="CloseButton_Click"/>
+    </StackPanel>
+</Window>
