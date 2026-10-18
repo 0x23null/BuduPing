@@ -5,6 +5,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.*
@@ -35,14 +38,14 @@ fun EmotionTile(emotion: Emotion, variant: StickerVariant?, favorite: Boolean, e
     val rose = MaterialTheme.colorScheme.primary
     Box {
     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceVariant,
-        modifier = Modifier.fillMaxWidth().aspectRatio(0.86f).graphicsLayer { scaleX = scale; scaleY = scale }
+        modifier = Modifier.fillMaxWidth().height(if (LocalDensity.current.fontScale > 1.1f) 120.dp else 100.dp).graphicsLayer { scaleX = scale; scaleY = scale }
             .combinedClickable(enabled = enabled, interactionSource = interaction, indication = androidx.compose.foundation.LocalIndication.current,
                 role = Role.Button, onClick = onClick, onLongClick = onLongClick,
                 onClickLabel = "Gửi ${emotion.label}", onLongClickLabel = "Chọn sticker ${emotion.label}")
             .semantics(mergeDescendants = true) { contentDescription = emotion.label + if (favorite) ", đã ghim" else "" }) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             StickerArt(variant, Modifier.weight(1f).fillMaxWidth())
-            Text(emotion.label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            Text(emotion.label, style = MaterialTheme.typography.labelMedium, maxLines = 2, textAlign = TextAlign.Center)
             if (favorite) Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }
     }

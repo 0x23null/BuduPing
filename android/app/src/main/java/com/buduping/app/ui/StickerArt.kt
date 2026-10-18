@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.viewinterop.AndroidView
 import com.buduping.app.StickerCatalog
 import com.buduping.app.StickerVariant
@@ -43,6 +44,6 @@ fun StickerArt(variant: StickerVariant?, modifier: Modifier = Modifier, descript
             it.contentDescription = description
         })
     } else if (thumbnail != null) {
-        Image(bitmap = thumbnail!!.asImageBitmap(), contentDescription = description, modifier = modifier, contentScale = ContentScale.Fit)
+        Image(bitmap = thumbnail!!.asImageBitmap(), contentDescription = description, modifier = modifier.testTag("stickerArt"), contentScale = ContentScale.Fit)
     } else Box(modifier)
 }

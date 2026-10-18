@@ -27,6 +27,6 @@ private val Night = darkColorScheme(
 )
 
 @Composable
-fun BuduPingTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Night else Day, content = content)
+fun BuduPingTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+    MaterialTheme(colorScheme = if (darkTheme) Night else Day, content = content)
 }

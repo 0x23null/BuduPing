@@ -115,11 +115,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     Scaffold(topBar = {
         TopAppBar(title = { Text("BuduPing", style = MaterialTheme.typography.headlineSmall) }, actions = {
             val connectionLabel = if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
-            Row(verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = connectionLabel }) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(if (online) Color(0xFF3F7F62) else MaterialTheme.colorScheme.outline))
-                Spacer(Modifier.width(6.dp))
-                Text(connectionLabel, style = MaterialTheme.typography.labelSmall)
+            Box(Modifier.size(32.dp).semantics { contentDescription = connectionLabel }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(10.dp).clip(CircleShape).background(if (online) Color(0xFF3F7F62) else MaterialTheme.colorScheme.outline))
             }
             IconButton(onClick = { settings = true }) { Icon(Icons.Default.Settings, "Cài đặt") }
         })
@@ -127,7 +124,11 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 AssistChip(onClick = { unpair = true }, label = { Text(PairCode.format(pairId)) })
-                Text(prefs.senderName, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(prefs.senderName, style = MaterialTheme.typography.labelMedium)
+                    Text(if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ",
+                        style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
