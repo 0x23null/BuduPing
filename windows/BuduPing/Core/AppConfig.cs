@@ -17,6 +17,8 @@ public sealed class AppConfig
     public bool ReducedMotion { get; set; }
     public string MonitorDevice { get; set; } = "";
     public string Corner { get; set; } = "BottomRight";
+    /// <summary>Nhân vật của người dùng máy này: "bubu" | "dudu" | "" (không lọc). Lọc sticker khi gửi đáp lại.</summary>
+    public string MyCharacter { get; set; } = "";
     public double OverlayScale { get; set; } = 1.0;
 }
 

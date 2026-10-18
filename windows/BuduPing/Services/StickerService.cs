@@ -85,8 +85,8 @@ public sealed class StickerService
         public long Cost;
     }
 
-    private const int MaxDecoded = 6;
-    private const long MaxDecodedBytes = 32L * 1024 * 1024;
+    private const int MaxDecoded = 4;
+    private const long MaxDecodedBytes = 16L * 1024 * 1024;
     private readonly Dictionary<string, StickerInfo> _catalog = new();
     public StickerInfo? LastInfo { get; private set; }
     public long DecodedBytes => _decoded.Values.Sum(x => x.Cost);
@@ -98,6 +98,7 @@ public sealed class StickerService
         public int height { get; set; }
         public int[] bounds { get; set; } = Array.Empty<int>();
         public long estimatedBytes { get; set; }
+        public List<string> characters { get; set; } = new(); // "bubu" = brown bear, "dudu" = white panda
     }
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
@@ -243,6 +244,27 @@ public sealed class StickerService
     }
 
     /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>
+    /// <summary>Nhân vật xuất hiện trong 1 biến thể (theo catalog): ["bubu"], ["dudu"] hoặc cả hai.</summary>
+    private List<string> CharactersOf(string variant)
+        => _catalog.TryGetValue(variant, out var info) ? info.characters : new List<string>();
+
+    /// <summary>
+    /// Chọn tên biến thể theo nhân vật của người gửi: ưu tiên sticker CHỈ có nhân vật của mình,
+    /// rồi tới sticker có cả hai; không bao giờ chọn sticker solo của nhân vật còn lại.
+    /// </summary>
+    public string PickVariant(string type, string myCharacter = "")
+    {
+        if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0) return "";
+        if (string.IsNullOrEmpty(myCharacter)) return list[_rng.Next(list.Count)].Variant;
+        var solo = list.Where(x => CharactersOf(x.Variant) is { Count: 1 } c && c[0] == myCharacter).ToList();
+        var pool = solo.Count > 0 ? solo : list.Where(x => CharactersOf(x.Variant).Count >= 2).ToList();
+        return pool.Count > 0 ? pool[_rng.Next(pool.Count)].Variant : list[_rng.Next(list.Count)].Variant;
+    }
+
+    /// <summary>Như GetRandom nhưng biến thể được lọc theo nhân vật của người gửi.</summary>
+    public BitmapImage? GetRandomForCharacter(string type, string myCharacter)
+        => GetRandom(type, PickVariant(type, myCharacter));
+
     public BitmapImage? GetRandom(string type, string variant = "")
     {
         if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0)

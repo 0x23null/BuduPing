@@ -272,12 +272,13 @@ public partial class App : Application
         var ping = _overlay?.LastPing;
         if (_replying || ping == null || _sync == null || (DateTime.UtcNow - _lastReply).TotalSeconds < 1) return;
         _replying = true;
-        bool sent = await _sync.ReplyAsync(ping);
+        string variant = _stickers?.PickVariant("hug", Config.MyCharacter) ?? "";
+        bool sent = await _sync.ReplyAsync(ping, variant);
         _replying = false;
         if (sent)
         {
             _lastReply = DateTime.UtcNow;
-            _overlay?.ShowPing(new PingEvent { Type = "hug", Text = "Đã gửi một cái ôm đáp lại.", IsLocal = true });
+            _overlay?.ShowPing(new PingEvent { Type = "hug", Variant = variant, Text = "Đã gửi một cái ôm đáp lại.", IsLocal = true });
         }
         else _tray?.ShowBalloonTip("BuduPing", "Chưa gửi được cái ôm. Thử lại khi có mạng nhé.", BalloonIcon.Warning);
     }
@@ -318,7 +319,6 @@ public partial class App : Application
         if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount);
     }
 
-    public System.Windows.Media.Imaging.BitmapSource? GetPreviewSticker() => _stickers?.GetRandom("hug");
 
     // ================= Test sticker nội bộ =================
 

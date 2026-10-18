@@ -14,7 +14,7 @@ public partial class SettingsWindow : Window
     public SettingsWindow(App app)
     {
         _app = app; InitializeComponent();
-        Closing += (_, e) => { if (!_app.IsExiting) { e.Cancel = true; PreviewSticker.Source = null; Hide(); } };
+        Closing += (_, e) => { if (!_app.IsExiting) { e.Cancel = true; Hide(); } };
     }
     public void RefreshUi()
     {
@@ -33,8 +33,7 @@ public partial class SettingsWindow : Window
         HotkeyStatus.Text = _app.HotkeyAvailable ? "Ctrl+Alt+Space: gửi một cái ôm đáp lại." :
             "Phím tắt đang được ứng dụng khác sử dụng. Bạn vẫn có thể đáp lại bằng nút dưới đây hoặc menu tray.";
         RefreshDeliveryState();
-        PreviewSticker.Source = _app.GetPreviewSticker();
-        UpdatePreview();
+        CharacterCombo.SelectedValue = _app.Config.MyCharacter;
         _suspendEvents = false;
     }
     public void RefreshDeliveryState()
@@ -42,12 +41,6 @@ public partial class SettingsWindow : Window
         ReplyButton.IsEnabled = _app.CanReply;
         PendingButton.IsEnabled = _app.PendingCount > 0;
         PendingButton.Content = _app.PendingCount > 0 ? $"Mở xem {_app.PendingCount} cảm xúc đang chờ" : "Chưa có lời nhắn đang chờ";
-    }
-    private void UpdatePreview()
-    {
-        PreviewSticker.HorizontalAlignment = _app.Config.Corner.EndsWith("Left", StringComparison.Ordinal) ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-        PreviewSticker.VerticalAlignment = _app.Config.Corner.StartsWith("Top", StringComparison.Ordinal) ? VerticalAlignment.Top : VerticalAlignment.Bottom;
-        PreviewSticker.Width = PreviewSticker.Height = 76 * _app.Config.OverlayScale;
     }
     private void CopyButton_Click(object sender, RoutedEventArgs e)
     {
@@ -74,11 +67,16 @@ public partial class SettingsWindow : Window
         _app.Config.MonitorDevice = (MonitorCombo.SelectedItem as DisplayPlacement.Display)?.Device ?? "";
         _app.Config.Corner = CornerCombo.SelectedValue as string ?? "BottomRight";
         if (double.TryParse(ScaleCombo.SelectedValue as string, CultureInfo.InvariantCulture, out var scale)) _app.Config.OverlayScale = scale;
-        UpdatePreview();
         _app.ApplyPreferences();
     }
     private async void ReplyButton_Click(object sender, RoutedEventArgs e) => await _app.ReplyToLastAsync();
     private void PendingButton_Click(object sender, RoutedEventArgs e) => _app.OpenPending();
     private void TestButton_Click(object sender, RoutedEventArgs e) => _app.SendTestPing();
-    private void CloseButton_Click(object sender, RoutedEventArgs e) { PreviewSticker.Source = null; Hide(); }
+    private void CloseButton_Click(object sender, RoutedEventArgs e) { Hide(); }
+    private void Character_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suspendEvents) return;
+        _app.Config.MyCharacter = CharacterCombo.SelectedValue as string ?? "";
+        AppConfigStore.Save(_app.Config);
+    }
 }

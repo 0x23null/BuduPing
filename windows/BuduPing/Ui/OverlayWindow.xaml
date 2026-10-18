@@ -23,19 +23,43 @@
             <!-- Bong bóng chat: bo góc + đuôi chĩa xuống sticker -->
             <StackPanel x:Name="BubbleWrap" HorizontalAlignment="Center" Margin="0,0,0,4" RenderTransformOrigin="0.5,1">
                 <StackPanel.RenderTransform><ScaleTransform x:Name="BubbleScale"/></StackPanel.RenderTransform>
-                <Border x:Name="Bubble" Background="#F5FFFFFF" CornerRadius="18"
-                        Padding="16,11" MaxWidth="330" Visibility="Collapsed">
+                <Border x:Name="Bubble" Background="#FAFFFFFF" CornerRadius="20"
+                        Padding="14,12,16,12" MaxWidth="348" Visibility="Collapsed">
                     <Border.Effect>
-                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.30" Color="#666666"/>
+                        <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.25" Color="#8A5A6A"/>
                     </Border.Effect>
-                    <StackPanel>
-                        <TextBlock x:Name="BubbleHeader" FontSize="16" FontWeight="Bold"
-                                   Foreground="#A93F65" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="BubbleText" FontSize="20" Foreground="#2B2B2B"
-                                   TextWrapping="Wrap"/>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="36" Height="36" CornerRadius="18" VerticalAlignment="Top" Margin="0,1,11,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#F77CA6" Offset="0"/>
+                                    <GradientStop Color="#CE4A7C" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <TextBlock x:Name="BubbleAvatar" Text="❤" FontSize="17" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="BubbleFrom" FontSize="13" FontWeight="SemiBold"
+                                           Foreground="#8A2F4E" VerticalAlignment="Center"
+                                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                                <Border Background="#FCE4EE" CornerRadius="8" Padding="7,2" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="BubbleEmotion" FontSize="11" FontWeight="SemiBold" Foreground="#B03A63"/>
+                                </Border>
+                            </StackPanel>
+                            <TextBlock x:Name="BubbleText" FontSize="20" Foreground="#33262C"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="27"
+                                       TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
-                <Path x:Name="BubbleTail" Data="M0,0 L18,0 L9,13 Z" Fill="#F5FFFFFF"
+                <Path x:Name="BubbleTail" Data="M0,0 L18,0 L9,13 Z" Fill="#FAFFFFFF"
                       HorizontalAlignment="Center" Margin="0,-1,0,0" Visibility="Collapsed"/>
             </StackPanel>
 

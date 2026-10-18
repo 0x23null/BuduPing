@@ -83,7 +83,6 @@
     <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto" Background="#FFF9F4">
     <StackPanel Margin="28,24">
         <TextBlock Text="BuduPing" FontSize="28" FontWeight="SemiBold"/>
-        <TextBlock Text="Một chạm, một chút thương." Foreground="#746057" Margin="0,4,0,20"/>
         <Border Background="White" CornerRadius="16" Padding="16" BorderBrush="#E5D6CE" BorderThickness="1">
             <StackPanel>
                 <TextBlock Text="Mã ghép cặp" Foreground="#746057"/>
@@ -101,15 +100,13 @@
         <CheckBox x:Name="DiscreetCheck" Content="Kín đáo: sticker nhỏ, giữ lời nhắn để xem sau" Checked="Preferences_Changed" Unchecked="Preferences_Changed"/>
         <CheckBox x:Name="PrivacyCheck" Content="Ẩn nội dung lời nhắn trên desktop" Checked="Preferences_Changed" Unchecked="Preferences_Changed"/>
         <CheckBox x:Name="MotionCheck" Content="Giảm chuyển động và hiệu ứng hạt" Checked="Preferences_Changed" Unchecked="Preferences_Changed"/>
-        <Border Background="#F3E6E9" CornerRadius="16" Height="156" Margin="0,20,0,0" Padding="12">
-            <Grid x:Name="PreviewScene">
-                <Border Background="#CCFFFFFF" CornerRadius="8" Width="100" Height="55" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12">
-                    <StackPanel Margin="10"><Rectangle Height="4" Fill="#D9C7C0" Margin="0,0,20,8"/><Rectangle Height="4" Fill="#E9DBD4" Margin="0,0,8,0"/></StackPanel>
-                </Border>
-                <Image x:Name="PreviewSticker" Width="76" Height="76" Stretch="Uniform" HorizontalAlignment="Right" VerticalAlignment="Bottom" RenderOptions.BitmapScalingMode="HighQuality"/>
-                <TextBlock Text="Xem trước vị trí" FontSize="11" Foreground="#746057" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,2"/>
-            </Grid>
-        </Border>
+        <TextBlock Text="Bạn là" FontWeight="SemiBold" FontSize="17" Margin="0,20,0,8"/>
+        <ComboBox x:Name="CharacterCombo" SelectedValuePath="Tag" SelectionChanged="Character_Changed" AutomationProperties.Name="Nhân vật của bạn">
+            <ComboBoxItem Content="Bubu" Tag="bubu"/>
+            <ComboBoxItem Content="Dudu" Tag="dudu"/>
+            <ComboBoxItem Content="Cả hai (không lọc sticker)" Tag=""/>
+        </ComboBox>
+        <TextBlock Text="Sticker bạn gửi đáp lại (Ctrl+Alt+Space) sẽ theo nhân vật này." Foreground="#746057" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
         <TextBlock Text="Vị trí sticker" FontWeight="SemiBold" FontSize="17" Margin="0,20,0,8"/>
         <TextBlock Text="Màn hình" Foreground="#746057"/>
         <ComboBox x:Name="MonitorCombo" SelectionChanged="Placement_Changed" AutomationProperties.Name="Màn hình hiển thị sticker">

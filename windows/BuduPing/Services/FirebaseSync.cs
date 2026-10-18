@@ -175,13 +175,13 @@ public sealed class FirebaseSync : IDisposable
         catch (OperationCanceledException) { }
     }
 
-    public async Task<bool> ReplyAsync(PingEvent ping)
+    public async Task<bool> ReplyAsync(PingEvent ping, string variant = "")
     {
         try
         {
             using var content = JsonContent(new
             {
-                id = Guid.NewGuid().ToString("N"), replyTo = ping.Id, type = "hug",
+                id = Guid.NewGuid().ToString("N"), replyTo = ping.Id, type = "hug", variant = variant,
                 ts = new Dictionary<string, string> { [".sv"] = "timestamp" },
             });
             using var response = await _rest.PutAsync($"pairs/{_pairId}/feedback/reply.json", content, _cts.Token).ConfigureAwait(false);

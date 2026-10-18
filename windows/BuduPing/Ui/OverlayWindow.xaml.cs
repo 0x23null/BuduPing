@@ -89,7 +89,7 @@ public partial class OverlayWindow : Window
             _idleTimer.Stop();
             if (_isShowing) return;
             _stickers.ReleaseDecoded();
-            MemoryTrim.Record("idle", _stickers.DecodedBytes);
+            MemoryTrim.TrimIdle(_stickers.DecodedBytes);
         };
         _idleTimer.Start();
         _summaryTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
@@ -155,6 +155,13 @@ public partial class OverlayWindow : Window
         if (!_isShowing && _queue.Take() is { } ping) Display(ping);
         else if (!_isShowing) _app.RefreshDeferred();
     }
+
+    private static string EmojiFor(string type) => type switch
+    {
+        "miss" => "💭", "love" => "🥰", "hug" => "🤗", "kiss" => "😘", "tease" => "😜",
+        "angry" => "😠", "sad" => "😢", "sorry" => "🙏", "funny" => "😂", "cheer" => "🎉",
+        "hungry" => "😋", "goodnight" => "🌙", _ => "❤",
+    };
 
     public void ShowPing(PingEvent ping)
     {
@@ -222,9 +229,9 @@ public partial class OverlayWindow : Window
         }
         SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
-        string header = StickerService.LabelFor(ping.Type);
-        if (!string.IsNullOrWhiteSpace(ping.From)) header += " · " + ping.From.Trim();
-        BubbleHeader.Text = header;
+        BubbleAvatar.Text = EmojiFor(ping.Type);
+        BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
+        BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
         bool hiddenText = _app.Config.HideMessageText && text.Length > 0;
         BubbleText.Text = hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)];
