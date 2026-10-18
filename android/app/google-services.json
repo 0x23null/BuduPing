@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "679381065528",
+    "firebase_url": "https://buduping-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "buduping",
+    "storage_bucket": "buduping.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:679381065528:android:f4c743001f323f6416ebcd",
+        "android_client_info": {
+          "package_name": "com.buduping.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7k-w8tr0ZnbjNopnsjsNIDjvqtu1e4Kc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
