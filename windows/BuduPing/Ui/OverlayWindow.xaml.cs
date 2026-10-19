@@ -442,6 +442,7 @@ public partial class OverlayWindow : Window
         StickerCard.BorderThickness = new Thickness(0);
         StickerCard.Effect = null;
         StickerCard.RenderTransform = new TranslateTransform(30, 0);
+        ImageFallback.Visibility = Visibility.Collapsed;
         _edgePeek = true;
     }
 
@@ -459,6 +460,7 @@ public partial class OverlayWindow : Window
             StickerCard.BorderBrush = _cardBorderBrush;
             StickerCard.BorderThickness = _cardBorderThickness;
             StickerCard.Effect = _cardEffect;
+            ImageFallback.Visibility = Visibility.Visible;
         }
         StickerCard.RenderTransform = null;
     }
