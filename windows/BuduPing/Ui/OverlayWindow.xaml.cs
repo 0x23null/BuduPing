@@ -292,6 +292,7 @@ public partial class OverlayWindow : Window
             ? Color.FromArgb(90, 150, 190, 255) : ping.Type is "hug" or "cheer" or "hungry"
             ? Color.FromArgb(90, 255, 185, 115) : Color.FromArgb(90, 255, 175, 205);
         StickerGlow.Fill = new RadialGradientBrush(glowColor, Colors.Transparent);
+        StickerGlow.Visibility = Visibility.Collapsed;
         ComboBadge.Visibility = Visibility.Collapsed;
         StickerScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         StickerScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
@@ -495,7 +496,7 @@ public partial class OverlayWindow : Window
             StickerCard.BorderBrush = _cardBorderBrush;
             StickerCard.BorderThickness = _cardBorderThickness;
             StickerCard.Effect = _cardEffect;
-            StickerGlow.Visibility = Visibility.Visible;
+            StickerGlow.Visibility = Visibility.Collapsed;
         }
         StickerCard.RenderTransform = null;
     }
