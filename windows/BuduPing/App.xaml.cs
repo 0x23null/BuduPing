@@ -155,7 +155,7 @@ public partial class App : Application
                 Config.DiscreetMode = false; Config.OverlayScale = 1;
                 _overlay.ResetPair();
                 for (int i = 0; i < 200; i++) _overlay.ShowPing(new PingEvent
-                    { Type = "love", Variant = "love-03", Character = "dudu", VariantLocked = false, IsLocal = true });
+                    { Type = "love", Variant = "love-03", Character = "bubu", VariantLocked = false, IsLocal = true });
                 await Task.Delay(750);
                 if (_overlay.ActiveComboCount != 200 || _overlay.ActiveParticleCount > PresentationPolicy.MaxParticles)
                     throw new InvalidOperationException("200-tap spam did not remain bounded.");
