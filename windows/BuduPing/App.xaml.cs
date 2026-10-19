@@ -44,7 +44,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        if (e.Args.Length == 2 && e.Args[0] == "--memory-review") { MemoryTrim.Disabled = true; StartMemoryReview(e.Args[1]); return; }
+        if (e.Args.Length == 2 && e.Args[0] == "--memory-review") { StartMemoryReview(e.Args[1]); return; }
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         if (e.Args.Length == 2 && e.Args[0] == "--ui-review")
         {
