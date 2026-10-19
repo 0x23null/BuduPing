@@ -32,6 +32,9 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('tag=' + tag + '\n')
           PY
+      - name: Report result
+        if: always()
+        run: bash .github/scripts/report-ci.sh release-version "${{ job.status }}" "" 
   apk:
     needs: version
     runs-on: ubuntu-latest
@@ -116,7 +119,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: BuduPing ${{ needs.version.outputs.tag }} — device-feedback polish: smooth mood switches, tidier phone grid
+          name: "BuduPing ${{ needs.version.outputs.tag }} — device-feedback polish, smooth mood switches, tidier phone grid"
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |
