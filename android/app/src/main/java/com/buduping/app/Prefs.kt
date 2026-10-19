@@ -33,7 +33,16 @@ class Prefs(context: Context) {
         get() = (sp.getString("favorites", "hug,love,miss,kiss") ?: "").split(',').filter { it.isNotBlank() }
         set(value) = sp.edit().putString("favorites", value.distinct().take(4).joinToString(",")).apply()
 
-    /** Which character I am: "bubu" (brown bear) or "dudu" (white panda); null = not chosen yet. */
+    // Preserve the chosen avatar on upgrade: 0.2.1 stored the reversed names.
+    init {
+        if (sp.getInt("character_schema", 0) < 2) {
+            val old = sp.getString(KEY_CHARACTER, null)
+            val corrected = when (old) { "bubu" -> "dudu"; "dudu" -> "bubu"; else -> null }
+            sp.edit().putString(KEY_CHARACTER, corrected).putInt("character_schema", 2).apply()
+        }
+    }
+
+    /** Bubu = white panda; Dudu = brown bear. Null means not chosen yet. */
     var myCharacter: String?
         get() = sp.getString(KEY_CHARACTER, null)
         set(value) = if (value == null) sp.edit().remove(KEY_CHARACTER).apply()

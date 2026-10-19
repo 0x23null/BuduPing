@@ -32,18 +32,18 @@ public sealed class StickerService
     public static readonly IReadOnlyDictionary<string, string> TypeLabels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["love"] = "Yêu ❤️",
-            ["miss"] = "Nhớ 🥺",
-            ["hug"] = "Ôm 🤗",
-            ["kiss"] = "Hôn 😘",
-            ["tease"] = "Ghét yêu 😤",
-            ["angry"] = "Giận 😠",
-            ["sad"] = "Buồn 🥲",
-            ["cheer"] = "Cố lên 💪",
-            ["goodnight"] = "Ngủ ngon 🌙",
-            ["sorry"] = "Xin lỗi 🥹",
-            ["funny"] = "Cười 😂",
-            ["hungry"] = "Đói 🍜",
+            ["love"] = "Yêu",
+            ["miss"] = "Nhớ",
+            ["hug"] = "Ôm",
+            ["kiss"] = "Hôn",
+            ["tease"] = "Ghét yêu",
+            ["angry"] = "Giận",
+            ["sad"] = "Buồn",
+            ["cheer"] = "Cố lên",
+            ["goodnight"] = "Ngủ ngon",
+            ["sorry"] = "Xin lỗi",
+            ["funny"] = "Cười",
+            ["hungry"] = "Đói",
             ["jealous"] = "Ghen 😒",
         };
 
@@ -98,7 +98,7 @@ public sealed class StickerService
         public int height { get; set; }
         public int[] bounds { get; set; } = Array.Empty<int>();
         public long estimatedBytes { get; set; }
-        public List<string> characters { get; set; } = new(); // "bubu" = brown bear, "dudu" = white panda
+        public List<string> characters { get; set; } = new(); // "bubu" = white panda, "dudu" = brown bear
     }
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
@@ -258,31 +258,31 @@ public sealed class StickerService
         if (string.IsNullOrEmpty(myCharacter)) return list[_rng.Next(list.Count)].Variant;
         var solo = list.Where(x => CharactersOf(x.Variant) is { Count: 1 } c && c[0] == myCharacter).ToList();
         var pool = solo.Count > 0 ? solo : list.Where(x => CharactersOf(x.Variant).Count >= 2).ToList();
-        return pool.Count > 0 ? pool[_rng.Next(pool.Count)].Variant : list[_rng.Next(list.Count)].Variant;
+        return pool.Count > 0 ? pool[_rng.Next(pool.Count)].Variant : "";
     }
 
     /// <summary>Như GetRandom nhưng biến thể được lọc theo nhân vật của người gửi.</summary>
     public BitmapImage? GetRandomForCharacter(string type, string myCharacter)
-        => GetRandom(type, PickVariant(type, myCharacter));
-
-    public BitmapImage? GetRandom(string type, string variant = "")
     {
-        if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0)
-        {
-            // fallback: type lạ → lấy bừa 1 gif bất kỳ còn hơn hiện trống
-            var any = _byType.Values.FirstOrDefault(l => l.Count > 0);
-            return any == null ? null : Decode(any[_rng.Next(any.Count)]);
-        }
+        var variant = PickVariant(type, myCharacter);
+        return string.IsNullOrEmpty(variant) ? null : GetRandom(type, variant, myCharacter);
+    }
+
+    public BitmapImage? GetRandom(string type, string variant = "", string character = "")
+    {
+        if (!_byType.TryGetValue(type ?? "", out var sources)) return null;
+        var list = sources.Where(x => string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character)).ToList();
+        if (list.Count == 0) return null;
 
         if (!string.IsNullOrEmpty(variant))
         {
             var chosen = list.FirstOrDefault(x => string.Equals(x.Variant, variant, StringComparison.Ordinal));
-            if (chosen != null) return Decode(chosen);
+            return chosen == null ? null : Decode(chosen);
         }
-        if (!_recent.TryGetValue(type!, out var recent))
+        if (!_recent.TryGetValue(type + ":" + character, out var recent))
         {
             recent = new Queue<int>(2);
-            _recent[type!] = recent;
+            _recent[type + ":" + character] = recent;
         }
 
         int idx;
@@ -295,7 +295,8 @@ public sealed class StickerService
         else
         {
             var banned = new HashSet<int>(recent);
-            do { idx = _rng.Next(list.Count); } while (banned.Contains(idx));
+            var eligible = Enumerable.Range(0, list.Count).Where(i => !banned.Contains(i)).ToArray();
+            idx = eligible.Length == 0 ? _rng.Next(list.Count) : eligible[_rng.Next(eligible.Length)];
         }
 
         recent.Enqueue(idx);

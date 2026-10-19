@@ -53,6 +53,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var myCharacter by remember { mutableStateOf(prefs.myCharacter) }
     var characterPicker by remember { mutableStateOf(false) }
     var replyType by remember { mutableStateOf<String?>(null) }
+    var replyVariant by remember { mutableStateOf("") }
     var funTick by remember { mutableIntStateOf(0) }
     var comboType by remember { mutableStateOf("") }
     var comboCount by remember { mutableIntStateOf(0) }
@@ -86,7 +87,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 if (feedback.replyId.isNotBlank() && feedback.replyId != prefs.lastReplyId) {
                     prefs.lastReplyId = feedback.replyId
                     if (System.currentTimeMillis() + offset - feedback.replyTs in -5_000L..600_000L) {
-                        replyType = feedback.replyType
+                        replyType = feedback.replyType; replyVariant = feedback.replyVariant
                         (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
                             VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
                     }
@@ -98,6 +99,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     fun send(type: String, variant: String = "") {
         val message = text.trim().take(80)
         if (catalog.isEmpty()) return
+        val chosen = if (variant.isBlank()) StickerCatalog.pickVariant(catalog, type, myCharacter)?.id
+            else StickerCatalog.allowedFor(catalog, type, myCharacter).firstOrNull { it.id == variant }?.id
+        if (chosen == null) { status = "unavailable"; return }
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         val time = System.currentTimeMillis()
         comboCount = if (comboType == type && time - lastTap <= 2_000) comboCount + 1 else 1
@@ -105,8 +109,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         status = "sending"
         // Quick tap: pick a variant of MY character (solo first, then duo); the long-press
         // picker sends its own explicit variant. The chosen variant always goes in the payload.
-        val chosen = if (variant.isBlank()) StickerCatalog.pickVariant(catalog, type, myCharacter)?.id ?: "" else variant
-        val key = repo.sendPing(pairId, type, message, prefs.senderName, chosen) { id, error ->
+        val key = repo.sendPing(pairId, type, message, prefs.senderName, chosen, myCharacter ?: "", variant.isNotBlank()) { id, error ->
             if (error == null) {
                 prefs.bumpFun(type); funTick++
                 if (pendingKey == id && status == "sending") { status = "sent"; prefs.deliveryStatus = status }
@@ -167,10 +170,11 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
                 items(ordered, key = { it.type }) { emotion ->
-                    val preview = if (emotion.type == "love") catalog.firstOrNull { it.id == "love-02" } else null
-                    EmotionTile(emotion, preview ?: StickerCatalog.allowedFor(catalog, emotion.type, myCharacter).firstOrNull(),
+                    val allowed = StickerCatalog.allowedFor(catalog, emotion.type, myCharacter)
+                    val preview = allowed.firstOrNull { StickerCatalog.charactersOf(it) == setOf(myCharacter) }
+                    EmotionTile(emotion, preview ?: allowed.firstOrNull(),
                         emotion.type in favorites,
-                        enabled = catalog.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
+                        enabled = allowed.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
                         onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
                 }
             }
@@ -195,6 +199,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 "received" -> "PC đã nhận · nội dung đang ẩn"
                 "expired" -> "Cảm xúc cũ đã hết hạn"
                 "superseded" -> "Đã gộp vào chuỗi cảm xúc"
+                "unavailable" -> "Chưa có sticker cho nhân vật này. Chọn cảm xúc khác nhé."
                 "failed" -> "Chưa gửi được · lời nhắn được giữ lại"
                 "permission_error" -> "Không đọc được kết nối · kiểm tra Firebase"
                 else -> ""
@@ -216,12 +221,12 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     }
     replyType?.let { type ->
         AlertDialog(onDismissRequest = { replyType = null }, title = { Text("Một cái ôm đáp lại.") },
-            text = { StickerArt(catalog.firstOrNull { it.type == type } ?: catalog.firstOrNull { it.type == "hug" },
+            text = { StickerArt(catalog.firstOrNull { it.id == replyVariant } ?: catalog.firstOrNull { it.type == type },
                 Modifier.fillMaxWidth().height(220.dp), "Một cái ôm từ PC", animated = isForeground) },
             confirmButton = { TextButton(onClick = { replyType = null }) { Text("Nhận rồi") } })
     }
     if (characterPicker) CharacterPicker(catalog,
-        onPick = { kind -> prefs.myCharacter = kind; myCharacter = kind; characterPicker = false },
+        onPick = { kind -> prefs.myCharacter = kind; myCharacter = kind; comboCount = 0; comboType = ""; lastTap = 0; characterPicker = false },
         onDismiss = { characterPicker = false })
     if (settings) SettingsDialog(prefs, onDismiss = { settings = false }, onChangeCode = { settings = false; onChangeCode() })
     if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Huỷ ghép cặp?") },

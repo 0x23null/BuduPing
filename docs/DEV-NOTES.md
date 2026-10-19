@@ -1,3 +1,7 @@
+## Current handoff — 0.2.2
+
+Read [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md) first. It corrects older character-name assumptions: **Bubu is white; Dudu is brown**. Preserve the shipped 0.2.1 memory engine.
+
 # BuduPing — Ghi chú phát triển (đọc file này trước khi sửa code)
 
 Tài liệu bàn giao ngữ cảnh cho bất kỳ ai (người hoặc AI) tiếp tục phát triển BuduPing.

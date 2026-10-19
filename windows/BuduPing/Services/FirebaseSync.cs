@@ -106,7 +106,8 @@ public sealed class FirebaseSync : IDisposable
         var ping = new PingEvent
         {
             Id = id, Type = Str(data, "type", 24), Text = Str(data, "text", 80),
-            From = Str(data, "from", 24), Variant = Str(data, "variant", 48),
+            From = Str(data, "from", 24), Variant = Str(data, "variant", 48), Character = Str(data, "character", 8),
+            VariantLocked = data.TryGetProperty("variantLocked", out var locked) && locked.ValueKind is JsonValueKind.True or JsonValueKind.False ? locked.GetBoolean() : null,
             Ts = data.TryGetProperty("ts", out var ts) && ts.ValueKind == JsonValueKind.Number && ts.TryGetInt64(out var ms) ? ms : 0,
         };
         PingReceived?.Invoke(ping);

@@ -1,20 +1,12 @@
-# BuduPing v0.2.1 — character stickers, lighter memory
+# BuduPing 0.2.2
 
-## Mới: chọn nhân vật của bạn
-- Lần đầu mở app Android sau khi ghép cặp, app hỏi "Bạn là ai trong hai đứa?" — chọn **Bubu** (gấu nâu) hoặc **Dudu** (gấu trúc trắng). Từ đó sticker bạn gửi chỉ lấy đúng phía của mình: sticker solo của nhân vật bạn chọn + sticker có cả hai, không bao giờ dính sticker solo của phía còn lại. Đổi lại bất cứ lúc nào bằng chip nhân vật trên đầu màn hình chính.
-- PC cũng có mục "Bạn là" trong Cài đặt — cái ôm đáp lại bằng Ctrl+Alt+Space sẽ theo nhân vật của người dùng máy.
-- Toàn bộ 27 sticker đã được rà soát và gắn thẻ nhân vật theo từng hình.
+- Sticker còn khoảng 45% kích thước cũ; mức Nhỏ nhỏ hơn rõ rệt. Lời nhắn vẫn dễ đọc.
+- Bubu là gấu trắng, Dudu là gấu nâu. Sửa ảnh chọn, nhãn và bộ lọc; giữ nhân vật đã chọn khi nâng cấp.
+- Đổi tiếng pop sang các nhịp a-ta-ta/ta ngắn. Spam có nhịp nảy, điểm nhấn combo và giới hạn âm thanh/hạt để ưu tiên hiệu năng.
+- Sửa combo từ Android bị tách vì mã sticker; giữ đúng nhân vật khi đổi biến thể.
+- Test sticker và gửi ôm đáp lại tôn trọng chế độ kín đáo.
+- Bỏ nút Đóng thừa; chỉnh header lời nhắn gọn hơn.
+- Mở EXE có thông báo đã chạy; mở lần nữa đưa cài đặt lên thay vì tạo thêm tiến trình. Khởi động cùng Windows vẫn yên lặng.
+- Giữ cơ chế quản lý RAM của 0.2.1, thêm kiểm tra native và so sánh RAM/CPU cùng điều kiện.
 
-## Nhẹ RAM hơn
-- Bỏ hẳn MediaPlayer/Media Foundation khỏi bản Windows: tiếng pop giờ phát bằng engine PCM siêu nhẹ (waveOut), vẫn chồng tiếng khi spam và leo nốt theo combo.
-- Cache giải mã GIF siết còn tối đa 16MB / 4 hình; app tự dọn bộ nhớ khi overlay đã ẩn.
-
-## Giao diện
-- Bong bóng tin nhắn trên desktop được vẽ lại: avatar tròn kèm emoji theo cảm xúc, tên người gửi gọn gàng, nhãn cảm xúc dạng pill, font và giãn dòng dễ đọc hơn.
-- Bỏ câu khẩu hiệu "Một chạm, một chút thương." và bỏ khung "Xem trước vị trí" trong Cài đặt theo yêu cầu.
-
-## Chất lượng sticker
-- Rà soát lại toàn bộ: 100% khung hình có 4 góc trong suốt hoàn toàn, không viền mờ/halo. Gỡ **love-01** vì bị chèn chữ fan-edit ("my motka duduuu…", chữ cuối bị cắt mép) — cùng loại lỗi đã gỡ ở các bản trước.
-- Kèm tài liệu `docs/STICKER-TEST-PLAN.md`: kế hoạch test sẵn 5 mood × nền tối/sáng/trắng.
-
-Cài đè lên bản cũ, không cần ghép cặp lại.
+Android là APK debug; chữ ký của runner có thể khác bản đã cài. Báo cáo kỹ thuật: `docs/DEVELOPMENT-REPORT-0.2.2.md`.

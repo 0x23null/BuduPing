@@ -13,36 +13,36 @@ ANDROID = ROOT / 'android/app/src/main/assets'
 TYPES = {'miss', 'love', 'hug', 'kiss', 'tease', 'angry', 'sad', 'sorry', 'funny', 'cheer', 'hungry', 'goodnight'}
 
 # Which character(s) appear in each sticker, keyed by file stem.
-# "bubu" = brown bear, "dudu" = white panda (Yier). Curated by visual audit
+# "dudu" = brown bear, "bubu" = white panda. Corrected by owner 2026-10-19. Curated by visual audit
 # 2026-10-19: every frame contact-sheet was eyeballed; single-character
 # stickers name exactly one character. Keep sorted alphabetically.
 CHARACTERS = {
     'angry-01': ['bubu', 'dudu'],  # animation alternates: panda yelling, then bear yelling
-    'angry-02': ['bubu'],
+    'angry-02': ['dudu'],
     'cheer-01': ['bubu', 'dudu'],
     'cheer-03': ['bubu', 'dudu'],
-    'funny-01': ['dudu'],
+    'funny-01': ['bubu'],
     'funny-02': ['bubu', 'dudu'],
-    'funny-03': ['bubu'],
+    'funny-03': ['dudu'],
     'goodnight-01': ['bubu', 'dudu'],
     'goodnight-03': ['bubu', 'dudu'],
     'hug-02': ['bubu', 'dudu'],
     'hug-03': ['bubu', 'dudu'],
     'hug-04': ['bubu', 'dudu'],
     'hungry-01': ['bubu', 'dudu'],
-    'hungry-02': ['dudu'],  # white panda eating ice cream
+    'hungry-02': ['bubu'],  # white panda eating ice cream
     'kiss-01': ['bubu', 'dudu'],
     'kiss-02': ['bubu', 'dudu'],
     'kiss-03': ['bubu', 'dudu'],
-    'love-02': ['bubu'],  # brown bear with "i love you" baked caption
-    'love-03': ['dudu'],
+    'love-02': ['dudu'],  # brown bear with "i love you" baked caption
+    'love-03': ['bubu'],
     'miss-01': ['bubu', 'dudu'],
     'miss-03': ['bubu', 'dudu'],
-    'miss-04': ['dudu'],
-    'sad-01': ['dudu'],  # white panda crying a tear pool (not bubu)
-    'sad-02': ['dudu'],  # white panda alone with purple object
-    'sorry-01': ['dudu'],  # white panda bowing alone
-    'sorry-02': ['dudu'],
+    'miss-04': ['bubu'],
+    'sad-01': ['bubu'],  # white panda crying a tear pool
+    'sad-02': ['bubu'],  # white panda alone with purple object
+    'sorry-01': ['bubu'],  # white panda bowing alone
+    'sorry-02': ['bubu'],
     'tease-02': ['bubu', 'dudu'],
 }
 

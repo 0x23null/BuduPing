@@ -72,7 +72,6 @@ public partial class SettingsWindow : Window
     private async void ReplyButton_Click(object sender, RoutedEventArgs e) => await _app.ReplyToLastAsync();
     private void PendingButton_Click(object sender, RoutedEventArgs e) => _app.OpenPending();
     private void TestButton_Click(object sender, RoutedEventArgs e) => _app.SendTestPing();
-    private void CloseButton_Click(object sender, RoutedEventArgs e) { Hide(); }
     private void Character_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (_suspendEvents) return;

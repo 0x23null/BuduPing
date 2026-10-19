@@ -8,6 +8,9 @@ public sealed record PingEvent
     public string Text { get; init; } = "";
     public string From { get; init; } = "";
     public string Variant { get; init; } = "";
+    public string Character { get; init; } = "";
+    public bool? VariantLocked { get; init; }
+    public bool HasFixedVariant => VariantLocked ?? !string.IsNullOrEmpty(Variant);
     public long Ts { get; init; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
     public bool IsLocal { get; init; }
 }

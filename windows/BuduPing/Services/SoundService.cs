@@ -4,23 +4,12 @@ using System.Runtime.InteropServices;
 
 namespace BuduPing.Services;
 
-/// <summary>
-/// Bộ máy tiếng pop "thang nốt": 10 mẫu pop01..pop10 nhúng trong exe, nốt càng cao và
-/// tiếng càng rõ khi combo càng dài; 8 khe phát song song nên các tiếng CHỒNG nhau được
-/// khi spam nhanh.
-///
-/// Bản 0.2.1 — viết lại vì RAM: bản cũ dùng MediaPlayer, kéo cả Media Foundation vào
-/// tiến trình (vài chục MB) chỉ để phát mấy file WAV 11KB, lại phải trích WAV ra
-/// %AppData%. Bản này phát PCM qua waveOut (winmm, API âm thanh cổ điển của Windows):
-/// toàn bộ 10 nốt nằm trong RAM dạng mẫu 16-bit (~115KB), không nạp thêm framework
-/// media nào, không ghi file ra đĩa. Nếu waveOut mở không được (máy không có thiết bị
-/// âm thanh) thì lùi về SoundPlayer cho nốt cao nhất. Mọi lỗi đều nuốt: mất tiếng chứ
-/// không crash.
-/// </summary>
+/// <summary>Short atata PCM cues via the existing winmm engine: two voices, no playback queue,
+/// no Media Foundation, no media files extracted at runtime. Cues are prepared offline.</summary>
 public sealed class SoundService : IDisposable
 {
-    private const int Notes = 10;
-    private const int Slots = 8;
+    private static readonly string[] CueNames = { "atata", "ta", "ta-accent" };
+    private const int Slots = 2;
     private const uint WaveMapper = 0xFFFFFFFF;
     private const uint CallbackFunction = 0x00030000;
     private const uint WomDone = 0x3BD;
@@ -79,6 +68,7 @@ public sealed class SoundService : IDisposable
         public short[] Buffer = Array.Empty<short>();
         public volatile bool Busy;
         public int Generation;
+        public bool Prepared;
     }
 
     private readonly List<short[]> _notes = new();
@@ -87,6 +77,8 @@ public sealed class SoundService : IDisposable
     private readonly WaveOutProc _callback; // giữ sống suốt đời service — native gọi lại qua delegate này
     private readonly System.Media.SoundPlayer? _fallback;
     private bool _disposed;
+    private readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+    private long _lastBeat = -Core.PresentationPolicy.AudioGapMs;
 
     public SoundService()
     {
@@ -95,9 +87,9 @@ public sealed class SoundService : IDisposable
         try
         {
             var asm = Assembly.GetExecutingAssembly();
-            for (int i = 1; i <= Notes; i++)
+            foreach (string cue in CueNames)
             {
-                using var s = asm.GetManifestResourceStream($"BuduPing.Assets.Sounds.pop{i:00}.wav");
+                using var s = asm.GetManifestResourceStream($"BuduPing.Assets.Sounds.{cue}.wav");
                 if (s == null) continue;
                 using var ms = new MemoryStream();
                 s.CopyTo(ms);
@@ -164,10 +156,13 @@ public sealed class SoundService : IDisposable
         catch { }
     }
 
-    /// <summary>Phát nốt theo độ dài combo: tap 1 = nốt thấp nhất, càng spam càng cao (kẹp ở nốt 10), âm lượng cũng nhích lên.</summary>
+    /// <summary>New reaction: a-ta-ta. Following taps: one ta; accents at combo milestones.</summary>
     public void Play(int comboCount)
     {
         if (_disposed) return;
+        long now = _clock.ElapsedMilliseconds;
+        if (now - _lastBeat < Core.PresentationPolicy.AudioGapMs) return;
+        _lastBeat = now;
         if (_slots.Count == 0)
         {
             try { _fallback?.Play(); } catch { }
@@ -175,11 +170,17 @@ public sealed class SoundService : IDisposable
         }
         try
         {
-            int idx = Math.Clamp(comboCount - 1, 0, _notes.Count - 1);
+            int idx = Math.Min(comboCount <= 1 ? 0 : Core.PresentationPolicy.IsAccent(comboCount) ? 2 : 1, _notes.Count - 1);
             var samples = _notes[idx];
-            double gain = Math.Min(0.35 + 0.05 * comboCount, 0.85);
-            var slot = _slots.FirstOrDefault(s => !s.Busy) ?? _slots[0];
-            if (slot.Busy) waveOutReset(slot.Handle); // cướp khe bận nhất: cắt tiếng cũ của khe này
+            double gain = Core.PresentationPolicy.IsAccent(comboCount) ? .42 : .36;
+            var slot = _slots.FirstOrDefault(s => !s.Busy);
+            if (slot == null) return; // Saturated: coalesce, never steal a live buffer or build a queue.
+            uint size = (uint)Marshal.SizeOf<WaveHeader>();
+            if (slot.Prepared)
+            {
+                if (waveOutUnprepareHeader(slot.Handle, slot.HeaderPtr, size) != 0) return;
+                slot.Prepared = false;
+            }
             for (int i = 0; i < samples.Length; i++)
             {
                 int v = (int)(samples[i] * gain);
@@ -198,9 +199,8 @@ public sealed class SoundService : IDisposable
                 reserved = IntPtr.Zero,
             };
             Marshal.StructureToPtr(hdr, slot.HeaderPtr, false);
-            uint size = (uint)Marshal.SizeOf<WaveHeader>();
-            waveOutUnprepareHeader(slot.Handle, slot.HeaderPtr, size);
             if (waveOutPrepareHeader(slot.Handle, slot.HeaderPtr, size) != 0) return;
+            slot.Prepared = true;
             slot.Busy = true;
             if (waveOutWrite(slot.Handle, slot.HeaderPtr, size) != 0) slot.Busy = false;
         }
@@ -247,12 +247,25 @@ public sealed class SoundService : IDisposable
         return (Array.Empty<short>(), 22050);
     }
 
+    public void Stop()
+    {
+        foreach (var slot in _slots)
+            try { waveOutReset(slot.Handle); slot.Busy = false; } catch { }
+        try { _fallback?.Stop(); } catch { }
+    }
+
     public void Dispose()
     {
         _disposed = true;
         foreach (var slot in _slots)
         {
-            try { waveOutReset(slot.Handle); waveOutClose(slot.Handle); } catch { }
+            try
+            {
+                waveOutReset(slot.Handle);
+                if (slot.Prepared) waveOutUnprepareHeader(slot.Handle, slot.HeaderPtr, (uint)Marshal.SizeOf<WaveHeader>());
+                waveOutClose(slot.Handle);
+            }
+            catch { }
             if (slot.Pin.IsAllocated) slot.Pin.Free();
             if (slot.HeaderPtr != IntPtr.Zero) Marshal.FreeHGlobal(slot.HeaderPtr);
         }

@@ -14,8 +14,8 @@ import com.buduping.app.StickerVariant
 private data class CharacterChoice(val kind: String, val name: String, val species: String, val previewId: String)
 
 private val CHOICES = listOf(
-    CharacterChoice(CharacterKind.BUBU, "Bubu", "Gấu nâu", "funny-03"),
-    CharacterChoice(CharacterKind.DUDU, "Dudu", "Gấu trúc trắng", "love-03"),
+    CharacterChoice(CharacterKind.BUBU, "Bubu", "Gấu trắng", "love-03"),
+    CharacterChoice(CharacterKind.DUDU, "Dudu", "Gấu nâu", "funny-03"),
 )
 
 /** Preview used for a character's chip/avatar in the header. */

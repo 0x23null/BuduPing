@@ -48,7 +48,7 @@ for attempt in 1 2 3 4 5; do
   # eyeballed over plain git, not only as Actions artifacts.
   if [ -n "${CI_UI_DIR:-}" ] && [ -d "$CI_UI_DIR" ]; then
     mkdir -p "$WS/.ci-wt/reports/ui-$NAME"
-    for f in "$CI_UI_DIR"/*.png; do
+    for f in "$CI_UI_DIR"/*.png "$CI_UI_DIR"/*.json "$CI_UI_DIR"/*.md; do
       [ -f "$f" ] && cp "$f" "$WS/.ci-wt/reports/ui-$NAME/" 2>/dev/null || true
     done
   fi

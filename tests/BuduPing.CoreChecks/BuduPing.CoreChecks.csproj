@@ -5,5 +5,6 @@
     <Compile Include="../../windows/BuduPing/Core/PingBacklog.cs" Link="PingBacklog.cs" />
     <Compile Include="../../windows/BuduPing/Core/RecentEventIds.cs" Link="RecentEventIds.cs" />
     <Compile Include="../../windows/BuduPing/Core/PairCode.cs" Link="PairCode.cs" />
+    <Compile Include="../../windows/BuduPing/Core/PresentationPolicy.cs" Link="PresentationPolicy.cs" />
   </ItemGroup>
 </Project>

@@ -6,18 +6,18 @@ import java.util.UUID
 data class DesktopState(val online: Boolean = false, val ts: Long = 0)
 data class PairFeedback(
     val eventId: String = "", val status: String = "", val replyId: String = "",
-    val replyType: String = "hug", val replyTs: Long = 0,
+    val replyType: String = "hug", val replyTs: Long = 0, val replyVariant: String = "",
 )
 
 class FirebaseRepo {
     private val db get() = database
 
-    fun sendPing(pairId: String, type: String, text: String, from: String, variant: String = "",
+    fun sendPing(pairId: String, type: String, text: String, from: String, variant: String = "", character: String = "", variantLocked: Boolean = true,
                  onResult: (String, Exception?) -> Unit): String {
         val node = db.getReference("pairs").child(pairId).child("inbox").push()
         val key = requireNotNull(node.key)
         node.setValue(mapOf("id" to UUID.randomUUID().toString(), "type" to type,
-            "text" to text.take(80), "from" to from.take(24), "variant" to variant,
+            "text" to text.take(80), "from" to from.take(24), "variant" to variant, "character" to character, "variantLocked" to variantLocked,
             "ts" to ServerValue.TIMESTAMP)) { error, _ -> onResult(key, error?.toException()) }
         return key
     }
@@ -43,6 +43,7 @@ class FirebaseRepo {
                 eventId = it.child("delivery/eventId").getValue(String::class.java) ?: "",
                 status = it.child("delivery/status").getValue(String::class.java) ?: "",
                 replyId = it.child("reply/id").getValue(String::class.java) ?: "",
+                replyVariant = it.child("reply/variant").getValue(String::class.java) ?: "",
                 replyType = it.child("reply/type").getValue(String::class.java) ?: "hug",
                 replyTs = it.child("reply/ts").getValue(Long::class.java) ?: 0))
         }

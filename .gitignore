@@ -22,3 +22,4 @@ android/app/src/main/assets/stickers/
 android/app/src/main/assets/previews/
 windows/BuduPing/Assets/Stickers/catalog.json
 __pycache__/
+.benchmark-baseline/

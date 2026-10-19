@@ -43,7 +43,9 @@ public static class PingPolicy
     public static bool CanCombine(PingEvent current, PingEvent next, double secondsSinceTap)
         => string.Equals(current.Type, next.Type, StringComparison.OrdinalIgnoreCase)
            && string.IsNullOrWhiteSpace(current.Text) && string.IsNullOrWhiteSpace(next.Text)
-           && string.IsNullOrEmpty(next.Variant) && secondsSinceTap <= 2.0;
+           && current.IsLocal == next.IsLocal
+           && string.Equals(current.Character, next.Character, StringComparison.Ordinal)
+           && !current.HasFixedVariant && !next.HasFixedVariant && secondsSinceTap >= 0 && secondsSinceTap <= 2.0;
 
     // Old messages are kept for a day; ambient taps expire after ten minutes.
     public static bool IsExpired(PingEvent ping, long nowMs)

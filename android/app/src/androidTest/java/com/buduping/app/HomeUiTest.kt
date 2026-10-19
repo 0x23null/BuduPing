@@ -1,5 +1,7 @@
 package com.buduping.app
 
+import androidx.compose.ui.graphics.asAndroidBitmap
+import org.junit.Assert.*
 import android.graphics.Bitmap
 import android.content.ContentValues
 import android.provider.MediaStore
@@ -25,7 +27,7 @@ class HomeUiTest {
     private fun capture(name: String) {
         compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+        val screenshot = compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap()
         // Public emulator media survives Gradle uninstalling the test target after the run.
         val resolver = instrumentation.targetContext.contentResolver
         val values = ContentValues().apply {
@@ -40,6 +42,7 @@ class HomeUiTest {
     private fun show(dark: Boolean, scale: Float, width: Int = 360) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val prefs = Prefs(context).apply {
+            myCharacter = CharacterKind.BUBU
             senderName = "Người thương"; pairId = "2HBRNKWT"; favorites = emptyList(); pendingKey = ""; deliveryStatus = ""
         }
         compose.setContent {
@@ -54,7 +57,7 @@ class HomeUiTest {
             }
         }
         compose.waitUntil(15_000) {
-            compose.onAllNodesWithTag("stickerArt", useUnmergedTree = true).fetchSemanticsNodes().size >= 4
+            compose.onAllNodesWithTag("stickerArt", useUnmergedTree = true).fetchSemanticsNodes().size >= if (scale > 1.1f) 8 else 12
         }
         compose.onAllNodesWithText("Gợi ý", substring = true).assertCountEquals(0)
     }
@@ -65,6 +68,41 @@ class HomeUiTest {
         compose.onNodeWithContentDescription("Ôm").performTouchInput { longClick() }
         compose.onNodeWithText("Gửi sticker này").assertIsDisplayed()
         capture("variant-picker")
+    }
+
+    @Test fun characterIdentityAndStrictFiltering() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val catalog = StickerCatalog.load(context)
+        assertEquals(setOf("bubu"), catalog.first { it.id == "love-03" }.characters)
+        assertEquals(setOf("dudu"), catalog.first { it.id == "love-02" }.characters)
+        for (me in listOf("bubu", "dudu")) for (emotion in EMOTIONS) {
+            val allowed = StickerCatalog.allowedFor(catalog, emotion.type, me)
+            assertTrue(allowed.all { me in it.characters })
+            repeat(10) {
+                val pick = StickerCatalog.pickVariant(catalog, emotion.type, me)
+                assertTrue(pick == null || me in pick.characters)
+            }
+        }
+        assertTrue(StickerCatalog.allowedFor(catalog, "sad", "dudu").isEmpty())
+        assertNull(StickerCatalog.pickVariant(catalog, "sad", "dudu"))
+        show(false, 1f)
+        compose.onNodeWithText("Bubu").performClick()
+        compose.onNodeWithText("Gấu trắng").assertIsDisplayed()
+        compose.onNodeWithText("Gấu nâu").assertIsDisplayed()
+        capture("character-picker")
+        compose.onNodeWithText("Dudu").performClick()
+        compose.onNodeWithContentDescription("Buồn").assertIsNotEnabled()
+        capture("home-dudu")
+    }
+
+    @Test fun identityMigrationPreservesAvatarOnce() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val raw = context.getSharedPreferences("buduping", android.content.Context.MODE_PRIVATE)
+        raw.edit().putInt("character_schema", 1).putString("my_character", "bubu").commit()
+        assertEquals("dudu", Prefs(context).myCharacter)
+        assertEquals("dudu", Prefs(context).myCharacter)
+        raw.edit().putInt("character_schema", 1).putString("my_character", "dudu").commit()
+        assertEquals("bubu", Prefs(context).myCharacter)
     }
 
     @Test fun setupScreen() {

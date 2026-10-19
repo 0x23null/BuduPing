@@ -30,7 +30,7 @@ public partial class OverlayWindow : Window
     #endregion
 
     private const int MaxQueue = 2;
-    private const int MaxParticles = 24;   // pool hạt cố định
+    private const int MaxParticles = PresentationPolicy.MaxParticles;   // pool hạt cố định
     private const double ComboWindowSec = 2.0;  // tính từ lần chạm GẦN NHẤT (v0.1.0 tính từ lúc bắt đầu hiện → spam là kẹt hàng đợi)
     private const double InterruptAfterSec = 1.0; // khác cảm xúc mà cái đang hiện đã chiếu quá 1s → nhường chỗ ngay
     private const double ShowSeconds = 2.8;     // v0.1.0 để 5s → spam sticker phải chờ nhau rất lâu
@@ -59,6 +59,12 @@ public partial class OverlayWindow : Window
     private DateTime _windowStartUtc;
     private DateTime _lastTapUtc;
     private bool _lv3Done;
+    private long _lastVisualBeat = -PresentationPolicy.VisualGapMs;
+    private long _lastVariantBeat = -PresentationPolicy.VariantGapMs;
+    private readonly Stopwatch _feedbackClock = Stopwatch.StartNew();
+    internal int ActiveComboCount => _activeCount;
+    internal int ActiveParticleCount => _particles.Count;
+    internal bool IsPeeking => _peeking;
 
     // Pool hạt: animate 1 vòng CompositionTarget.Rendering, hết hạt thì unsubscribe → idle 0% CPU
     private readonly List<Particle> _particles = new(MaxParticles);
@@ -72,7 +78,7 @@ public partial class OverlayWindow : Window
         public double Vx, Vy, Gravity, X, Y;
         public double Age, Life = 1, FadeIn = 0.12;
         public double SwayAmp, SwayFreq, Phase;
-        public double StartScale = 1, EndScale = 1;
+        public double StartScale = 1, EndScale = 1, Unit = 1;
     }
 
     public OverlayWindow(StickerService stickers, App app)
@@ -119,9 +125,11 @@ public partial class OverlayWindow : Window
     {
         ContentPanel.VerticalAlignment = _app.Config.Corner.StartsWith("Top", StringComparison.Ordinal)
             ? VerticalAlignment.Top : VerticalAlignment.Bottom;
-        Root.LayoutTransform = new ScaleTransform(_app.Config.OverlayScale, _app.Config.OverlayScale);
-        Width = 520 * _app.Config.OverlayScale;
-        Height = 580 * _app.Config.OverlayScale;
+        // Scale artwork only: small stickers must not make message text unreadable.
+        double size = PresentationPolicy.ArtworkScale * PresentationPolicy.NormalizeSize(_app.Config.OverlayScale);
+        StickerCard.LayoutTransform = new ScaleTransform(size, size);
+        Width = 520;
+        Height = 580;
         DisplayPlacement.Place(this, _app.Config.MonitorDevice, _app.Config.Corner, _app.Config.OverlayScale);
     }
 
@@ -133,6 +141,10 @@ public partial class OverlayWindow : Window
         if (_app.Config.DiscreetMode || _app.Config.HideMessageText)
         {
             Bubble.Visibility = Visibility.Collapsed; BubbleTail.Visibility = Visibility.Collapsed;
+        }
+        if (_app.Config.DiscreetMode && _isShowing && !_peeking)
+        {
+            _peeking = true; ClearParticles(); PlayEntrance();
         }
         if (_app.Config.ReducedMotion) ClearParticles();
     }
@@ -174,10 +186,12 @@ public partial class OverlayWindow : Window
         }
         _idleTimer.Stop();
         if (!ping.IsLocal) LastPing = ping;
-        if ((_app.Config.DiscreetMode || (_app.Config.HideMessageText && !string.IsNullOrWhiteSpace(ping.Text))) && !ping.IsLocal)
+        if (PresentationPolicy.ShouldPeek(ping, _app.Config.DiscreetMode, _app.Config.HideMessageText))
         {
-            Enqueue(ping);
-            if (!_isShowing) Display(ping, peek: true);
+            // Tests/reply confirmations follow the same privacy rule; never change preferences.
+            // Only remote events stay pending for the explicit "open pending" action.
+            if (!ping.IsLocal) Enqueue(ping);
+            if (!_isShowing || ping.IsLocal) Display(ping, peek: true);
             return;
         }
         var now = DateTime.UtcNow;
@@ -186,8 +200,7 @@ public partial class OverlayWindow : Window
         {
             _activeCount++;
             _lastTapUtc = now;
-            if (!_app.Config.ReducedMotion) ApplyComboVisual();
-            else _app.PlayPop(_activeCount);
+            ApplyComboVisual();
             _app.CompletePing(ping, "displayed");
             RestartHideTimer();
             return;
@@ -221,16 +234,15 @@ public partial class OverlayWindow : Window
         _activeType = ping.Type; _activeCount = 1; _lv3Done = false;
         _windowStartUtc = DateTime.UtcNow; _lastTapUtc = _windowStartUtc;
         ClearParticles();
-        var bmp = _stickers.GetRandom(ping.Type, ping.Variant);
+        var bmp = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
         if (bmp == null)
         {
             _isShowing = false;
-            _app.DeferPing(ping);
+            _app.CompletePing(ping, "unavailable");
             return;
         }
         SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
-        BubbleAvatar.Text = EmojiFor(ping.Type);
         BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
         BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
@@ -320,26 +332,36 @@ public partial class OverlayWindow : Window
 
     private void ApplyComboVisual()
     {
-        ApplyMoodPose(_activeType);
-        if (_activeCount % 4 == 0 && _current != null)
-        {
-            var variant = _stickers.GetRandom(_activeType);
-            if (variant != null) { SetAnimationSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
-        }
         ComboBadgeText.Text = "x" + _activeCount;
         ComboBadge.Visibility = Visibility.Visible;
-        // Càng bấm càng TO (công thức tăng trưởng của main v0.1.3): +7% mỗi tap, trần 1.85x
-        PopSticker(Math.Min(1 + 0.07 * (_activeCount - 1), 1.85));
-        if (_activeCount >= 5 && !_lv3Done)
-        {
-            _lv3Done = true; SpawnMiniParade(); BurstFor(_activeType, StickerCenter(), 3);
-        }
-        else BurstFor(_activeType, StickerCenter(), _activeCount >= 3 ? 2 : 1);
+        // Audio and motion respond to this received beat. Excess events update the counter,
+        // never schedule a backlog of sounds, decodes or animation clocks.
         _app.PlayPop(_activeCount);
-        BadgeScale.BeginAnimation(ScaleTransform.ScaleXProperty,
-            new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(400)) { EasingFunction = new BackEase { Amplitude = 1.6, EasingMode = EasingMode.EaseOut } });
-        BadgeScale.BeginAnimation(ScaleTransform.ScaleYProperty,
-            new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(400)) { EasingFunction = new BackEase { Amplitude = 1.6, EasingMode = EasingMode.EaseOut } });
+        if (_app.Config.ReducedMotion) return;
+        long now = _feedbackClock.ElapsedMilliseconds;
+        if (now - _lastVisualBeat < PresentationPolicy.VisualGapMs) return;
+        _lastVisualBeat = now;
+        bool accent = PresentationPolicy.IsAccent(_activeCount);
+        ApplyMoodPose(_activeType);
+        if (_activeCount % 4 == 0 && _current != null && !_current.HasFixedVariant &&
+            now - _lastVariantBeat >= PresentationPolicy.VariantGapMs)
+        {
+            _lastVariantBeat = now;
+            var variant = _stickers.GetRandom(_activeType, character: _current.Character);
+            if (variant != null) { SetAnimationSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
+        }
+        // At most 1.20x. A tap gives a brief squash/stretch, not permanent giant growth.
+        double target = PresentationPolicy.ComboScale(_activeCount);
+        foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            StickerScale.BeginAnimation(prop, new DoubleAnimation(target + .055, target, TimeSpan.FromMilliseconds(190))
+                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+        if (accent)
+        {
+            BurstFor(_activeType, StickerCenter(), 1);
+            if (_activeCount >= 5 && !_lv3Done) { _lv3Done = true; SpawnMiniParade(); }
+        }
+        foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            BadgeScale.BeginAnimation(prop, new DoubleAnimation(accent ? .8 : .95, 1, TimeSpan.FromMilliseconds(180)));
     }
 
     private void RestartHideTimer()
@@ -460,8 +482,8 @@ public partial class OverlayWindow : Window
     private Point StickerCenter()
     {
         // Layout coordinates stay stable while the entrance scales/slides the content.
-        var point = new Point(132, 110);
-        for (Visual? visual = StickerStage; visual != null && !ReferenceEquals(visual, Root);
+        var point = StickerStage.TransformToAncestor(ContentPanel).Transform(new Point(132, 110));
+        for (Visual? visual = ContentPanel; visual != null && !ReferenceEquals(visual, Root);
              visual = VisualTreeHelper.GetParent(visual) as Visual)
         {
             var offset = VisualTreeHelper.GetOffset(visual);
@@ -484,10 +506,14 @@ public partial class OverlayWindow : Window
         var p = _recycled.Count > 0 ? _recycled.Pop() : new Particle();
         p.El = el; p.Vx = p.Vy = p.Gravity = p.X = p.Y = p.Age = p.SwayAmp = p.SwayFreq = p.Phase = 0;
         p.Life = p.StartScale = p.EndScale = 1; p.FadeIn = 0.12;
-        p.Move.X = p.Move.Y = 0; p.Scale.ScaleX = p.Scale.ScaleY = 1;
+        p.Unit = PresentationPolicy.ArtworkScale * PresentationPolicy.NormalizeSize(_app.Config.OverlayScale);
+        var center = StickerCenter();
+        x = center.X + (x - center.X) * p.Unit;
+        y = center.Y + (y - center.Y) * p.Unit;
+        p.Move.X = p.Move.Y = 0; p.Scale.ScaleX = p.Scale.ScaleY = p.Unit;
         var tg = new TransformGroup();
-        tg.Children.Add(p.Move);
         tg.Children.Add(p.Scale);
+        tg.Children.Add(p.Move);
         el.RenderTransform = tg;
         el.RenderTransformOrigin = new Point(0.5, 0.5);
         el.Opacity = 0;
@@ -533,12 +559,12 @@ public partial class OverlayWindow : Window
             p.X += p.Vx * dt; p.Y += p.Vy * dt;
             double px = p.X + Math.Sin(p.Age * p.SwayFreq + p.Phase) * p.SwayAmp;
             double py = p.Y;
-            p.Move.X = px;
-            p.Move.Y = py;
+            p.Move.X = px * p.Unit;
+            p.Move.Y = py * p.Unit;
             double t = p.Age / p.Life;
             p.El.Opacity = t < p.FadeIn ? t / p.FadeIn : 1 - (t - p.FadeIn) / (1 - p.FadeIn);
             double s = p.StartScale + (p.EndScale - p.StartScale) * t;
-            p.Scale.ScaleX = p.Scale.ScaleY = s;
+            p.Scale.ScaleX = p.Scale.ScaleY = s * p.Unit;
         }
 
         if (_particles.Count == 0)
@@ -738,16 +764,17 @@ public partial class OverlayWindow : Window
     /// <summary>Lv3: 3 mini sticker chạy nối đuôi ở mép dưới overlay (cục bộ).</summary>
     private void SpawnMiniParade()
     {
-        for (int i = 0; i < 3; i++)
+        var center = StickerCenter();
+        for (int i = 0; i < 2; i++)
         {
             var bmp = ImageBehavior.GetAnimatedSource(StickerImage);
             var img = new Image { Width = 68, Height = 68, IsHitTestVisible = false };
             RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
             // Reuse one static frame; three extra GIF decoders would inflate combo peak memory.
             if (bmp != null) img.Source = bmp;
-            var p = AddParticle(img, -70 - i * 85, Height - 100);
-            p.Vx = 150; p.Vy = 0;
-            p.Life = 2.8; p.FadeIn = 0.08;
+            var p = AddParticle(img, center.X - 100 + i * 140, center.Y + 60);
+            p.Vx = (i == 0 ? -1 : 1) * 18; p.Vy = -45;
+            p.Life = .9; p.FadeIn = 0.08;
             p.SwayAmp = 6; p.SwayFreq = 6; p.Phase = i * 2; // tưng tưng khi chạy
         }
     }

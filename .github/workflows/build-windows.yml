@@ -68,6 +68,43 @@ jobs:
           name: BuduPing-windows-ui-review
           path: ${{ runner.temp }}/buduping-ui
 
+      - name: Check out v0.2.1 for the memory comparison
+        uses: actions/checkout@v4
+        with:
+          ref: v0.2.1
+          path: .benchmark-baseline
+
+      - name: Prepare the identical offline benchmark harness
+        working-directory: ${{ github.workspace }}
+        run: |
+          python tools/prepare_memory_baseline.py .benchmark-baseline
+          python .benchmark-baseline/tools/prepare_assets.py
+          dotnet publish .benchmark-baseline/windows/BuduPing -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$env:RUNNER_TEMP/buduping-baseline"
+
+      - name: Compare native memory under the same workload
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'buduping-memory'
+          $before = Join-Path $env:RUNNER_TEMP 'buduping-baseline/BuduPing.exe'
+          $after = (Resolve-Path './publish/BuduPing.exe').Path
+          foreach ($entry in @(@{Name='before';Exe=$before}, @{Name='after';Exe=$after})) {
+            $target = Join-Path $root $entry.Name
+            $process = Start-Process -FilePath $entry.Exe -ArgumentList @('--memory-review', $target) -PassThru
+            if (-not $process.WaitForExit(180000)) { $process.Kill(); throw 'Memory review timed out' }
+            if ($process.ExitCode -ne 0) { throw ('Memory review failed: ' + $entry.Name) }
+            if (-not (Test-Path (Join-Path $target 'memory.json'))) { throw 'Missing memory measurements' }
+          }
+          python ../../tools/compare_memory.py $root
+          Copy-Item (Join-Path $root 'comparison.md') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-comparison.md')
+          Copy-Item (Join-Path $root 'after/memory.json') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-after.json')
+          Copy-Item (Join-Path $root 'before/memory.json') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-before.json')
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: BuduPing-memory-review
+          path: ${{ runner.temp }}/buduping-memory
+
       - name: Report CI result
         if: always()
         shell: bash

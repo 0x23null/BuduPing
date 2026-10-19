@@ -9,7 +9,7 @@ import org.json.JSONArray
 data class StickerVariant(val id: String, val type: String, val file: String, val thumbnail: String,
                           val characters: Set<String> = emptySet())
 
-/** Who the phone user plays: Bubu (brown bear) or Dudu (white panda). */
+/** Who the phone user plays: Bubu (white panda) or Dudu (brown bear). */
 object CharacterKind {
     const val BUBU = "bubu"
     const val DUDU = "dudu"
@@ -39,75 +39,15 @@ object StickerCatalog {
         return bitmap
     }
 
-    /**
-     * Embedded per-variant character audit, used when a catalog entry has no
-     * "characters" field yet (the generator adds it separately). Kept in sync
-     * with the curated sticker set on the Windows side.
-     */
-    private val FALLBACK_CHARACTERS = mapOf(
-        "angry-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "angry-02" to setOf(CharacterKind.BUBU),
-        "cheer-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "cheer-03" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "funny-01" to setOf(CharacterKind.DUDU),
-        "funny-02" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "funny-03" to setOf(CharacterKind.BUBU),
-        "goodnight-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "goodnight-03" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "hug-02" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "hug-03" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "hug-04" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "hungry-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "hungry-02" to setOf(CharacterKind.DUDU),
-        "kiss-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "kiss-02" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "kiss-03" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "love-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "love-02" to setOf(CharacterKind.BUBU),
-        "love-03" to setOf(CharacterKind.DUDU),
-        "miss-01" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "miss-03" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-        "miss-04" to setOf(CharacterKind.DUDU),
-        "sad-01" to setOf(CharacterKind.DUDU),
-        "sad-02" to setOf(CharacterKind.DUDU),
-        "sorry-01" to setOf(CharacterKind.DUDU),
-        "sorry-02" to setOf(CharacterKind.DUDU),
-        "tease-02" to setOf(CharacterKind.BUBU, CharacterKind.DUDU),
-    )
+    // The generated catalog is the single authority. Unknown assets fail closed.
+    fun charactersOf(variant: StickerVariant): Set<String> = variant.characters
 
-    /**
-     * Character set for a variant. The catalog's "characters" field wins when
-     * present; otherwise the embedded audit map; an unknown id is treated as
-     * both characters so it is never wrongly excluded from someone's sticker.
-     */
-    fun charactersOf(variant: StickerVariant): Set<String> =
-        variant.characters.ifEmpty {
-            FALLBACK_CHARACTERS[variant.id] ?: setOf(CharacterKind.BUBU, CharacterKind.DUDU)
-        }
+    fun allowedFor(catalog: List<StickerVariant>, type: String, me: String?): List<StickerVariant> =
+        catalog.filter { it.type == type && (me.isNullOrBlank() || me in charactersOf(it)) }
 
-    /**
-     * Variants of [type] this user is allowed to send: their character's solos
-     * plus duo stickers. Never includes the other character's solos. If nothing
-     * is allowed (should not happen), falls back to all variants of the type
-     * so the picker never shows empty.
-     */
-    fun allowedFor(catalog: List<StickerVariant>, type: String, me: String?): List<StickerVariant> {
-        val ofType = catalog.filter { it.type == type }
-        if (me.isNullOrBlank()) return ofType
-        val allowed = ofType.filter { me in charactersOf(it) }
-        return allowed.ifEmpty { ofType }
-    }
-
-    /**
-     * Variant to send on a quick tap: prefer a solo sticker of my character
-     * (random), then a duo sticker (random), then — as a last resort — any
-     * variant of the type. Always non-null when the type exists in the catalog.
-     */
     fun pickVariant(catalog: List<StickerVariant>, type: String, me: String?): StickerVariant? {
-        val ofType = catalog.filter { it.type == type }
-        if (ofType.isEmpty() || me.isNullOrBlank()) return ofType.randomOrNull()
-        val mine = ofType.filter { charactersOf(it) == setOf(me) }
-        val duo = ofType.filter { charactersOf(it).size > 1 }
-        return (mine.ifEmpty { duo }.ifEmpty { ofType }).random()
+        val allowed = allowedFor(catalog, type, me)
+        val solo = allowed.filter { charactersOf(it) == setOf(me) }
+        return (solo.ifEmpty { allowed }).randomOrNull()
     }
 }

@@ -102,8 +102,8 @@
         <CheckBox x:Name="MotionCheck" Content="Giảm chuyển động và hiệu ứng hạt" Checked="Preferences_Changed" Unchecked="Preferences_Changed"/>
         <TextBlock Text="Bạn là" FontWeight="SemiBold" FontSize="17" Margin="0,20,0,8"/>
         <ComboBox x:Name="CharacterCombo" SelectedValuePath="Tag" SelectionChanged="Character_Changed" AutomationProperties.Name="Nhân vật của bạn">
-            <ComboBoxItem Content="Bubu" Tag="bubu"/>
-            <ComboBoxItem Content="Dudu" Tag="dudu"/>
+            <ComboBoxItem Content="Bubu · gấu trắng" Tag="bubu"/>
+            <ComboBoxItem Content="Dudu · gấu nâu" Tag="dudu"/>
             <ComboBoxItem Content="Cả hai (không lọc sticker)" Tag=""/>
         </ComboBox>
         <TextBlock Text="Sticker bạn gửi đáp lại (Ctrl+Alt+Space) sẽ theo nhân vật này." Foreground="#746057" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
@@ -119,15 +119,14 @@
         </ComboBox>
         <TextBlock Text="Kích thước" Foreground="#746057"/>
         <ComboBox x:Name="ScaleCombo" SelectedValuePath="Tag" SelectionChanged="Placement_Changed" AutomationProperties.Name="Kích thước sticker">
-            <ComboBoxItem Content="Nhỏ" Tag="0.75"/><ComboBoxItem Content="Vừa" Tag="1"/><ComboBoxItem Content="Lớn" Tag="1.25"/>
+            <ComboBoxItem Content="Nhỏ" Tag="0.6"/><ComboBoxItem Content="Vừa" Tag="1"/><ComboBoxItem Content="Lớn" Tag="1.3"/>
         </ComboBox>
         <TextBlock x:Name="HotkeyStatus" TextWrapping="Wrap" Foreground="#746057" Margin="0,12,0,8"/>
         <Button x:Name="ReplyButton" Content="Gửi ôm đáp lại" Click="ReplyButton_Click"/>
         <Button x:Name="PendingButton" Content="Mở xem lời nhắn đang chờ" Click="PendingButton_Click"/>
         <Button Content="Thử sticker" Click="TestButton_Click" Background="#A93F65" Foreground="White"/>
-        <TextBlock Text="BuduPing 0.2.1 · Đóng cửa sổ để tiếp tục chạy trong khay hệ thống."
+        <TextBlock Text="BuduPing 0.2.2 · Đóng cửa sổ để tiếp tục chạy trong khay hệ thống."
             TextWrapping="Wrap" Foreground="#746057" FontSize="12" Margin="0,16,0,8"/>
-        <Button Content="Đóng" HorizontalAlignment="Right" Click="CloseButton_Click"/>
     </StackPanel>
     </ScrollViewer>
 </Window>

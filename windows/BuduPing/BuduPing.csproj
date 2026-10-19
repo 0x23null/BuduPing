@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.2.1</Version>
+    <Version>0.2.2</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>BuduPing</AssemblyName>
     <RootNamespace>BuduPing</RootNamespace>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- pop.wav nhúng vào assembly để phát âm thanh không cần file rời -->
+    <!-- Short PCM cues embedded: no runtime extraction or media framework. -->
     <EmbeddedResource Include="Assets\Sounds\*.wav" />
     <EmbeddedResource Include="Assets\tray.ico" />
     <!-- Sticker GIF: NHUNG THANG vao exe. Ban v0.1.0 de file roi canh exe nen

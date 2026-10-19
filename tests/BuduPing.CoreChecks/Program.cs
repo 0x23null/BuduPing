@@ -32,6 +32,15 @@ internal static class Program
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b", "new text"), .1), "New text never disappears into a combo");
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b") with { Variant = "hug-02" }, .1), "Explicit variant is respected");
         Check(!PingPolicy.CanCombine(Ping("a"), Ping("b"), 3), "Expired combo window starts a new display");
+        var automatic = Ping("auto") with { Variant = "love-03", Character = "bubu", VariantLocked = false };
+        Check(PingPolicy.CanCombine(automatic, automatic with { Id = "next" }, .1), "Auto variants combine after character filtering");
+        Check(!PingPolicy.CanCombine(automatic, automatic with { Character = "dudu" }, .1), "Different characters never combine");
+        Check(!PingPolicy.CanCombine(automatic, automatic with { VariantLocked = true }, .1), "Manual next choice remains separate");
+        Check(!PingPolicy.CanCombine(automatic with { VariantLocked = true }, automatic, .1), "Manual current choice remains separate");
+        Check(!PingPolicy.CanCombine(automatic, automatic with { IsLocal = true }, .1), "Tests never consume remote combo messages");
+        Check(PresentationPolicy.ShouldPeek(automatic with { IsLocal = true }, true, false), "Local test respects discreet mode");
+        Check(PresentationPolicy.ShouldPeek(automatic with { Text = "private" }, false, true), "Private text peeks");
+        Check(!PresentationPolicy.ShouldPeek(automatic, false, true), "Plain reaction can show with hidden text enabled");
         var seen = new RecentEventIds(3);
         Check(seen.TryRemember("x"), "Fresh event is remembered");
         Check(!seen.TryRemember("x"), "Duplicate event is ignored");
