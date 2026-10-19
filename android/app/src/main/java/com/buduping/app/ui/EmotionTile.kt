@@ -45,7 +45,7 @@ fun EmotionTile(emotion: Emotion, variant: StickerVariant?, favorite: Boolean, e
             .semantics(mergeDescendants = true) { contentDescription = emotion.label + if (favorite) ", đã ghim" else "" }) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             StickerArt(variant, Modifier.weight(1f).fillMaxWidth())
-            Text(emotion.label, style = MaterialTheme.typography.labelMedium, maxLines = 2, textAlign = TextAlign.Center)
+            Text(emotion.label, style = MaterialTheme.typography.labelMedium, fontFamily = BalooFamily, maxLines = 2, textAlign = TextAlign.Center)
             if (!enabled) Text("Chưa có", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (favorite) Text("•", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         }

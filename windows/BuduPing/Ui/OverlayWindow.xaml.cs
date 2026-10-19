@@ -48,6 +48,14 @@ public partial class OverlayWindow : Window
     private int _expiredCount;
     internal Point LastBurstCenter { get; private set; }
     public PingEvent? LastPing { get; private set; }
+    // Edge peek (hello): card chrome is swapped out and restored afterwards.
+    private bool _edgePeek;
+    private bool _edgeChromeSaved;
+    private System.Windows.Media.Brush? _cardBackground;
+    private System.Windows.Media.Brush? _cardBorderBrush;
+    private Thickness _cardBorderThickness;
+    private System.Windows.Media.Effects.Effect? _cardEffect;
+
     public int PendingCount => _queue.Count;
     private readonly DispatcherTimer _hideTimer;
     private readonly Random _rng = new();
@@ -265,7 +273,22 @@ public partial class OverlayWindow : Window
         Visibility = Visibility.Visible;
         PlaceBottomRight();
         UpdateLayout(); // The first burst needs the arranged sticker position, not its unmeasured origin.
-        PlayEntrance();
+        // Hello (no text, not discreet) = edge peek: the buddy slides out of the
+        // right screen rim, body cropped by the rim itself. Text hellos keep the
+        // normal corner card so the message stays fully readable.
+        bool wantEdge = string.Equals(ping.Type, "hello", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(ping.Text) && !peek && !_app.Config.DiscreetMode;
+        if (wantEdge)
+        {
+            ApplyEdgeChrome();
+            DisplayPlacement.PlacePeekRight(this, _app.Config.MonitorDevice);
+            PlayEdgeEntrance();
+        }
+        else
+        {
+            RestoreEdgeChrome();
+            PlayEntrance();
+        }
         if (!peek)
         {
             if (!_app.Config.ReducedMotion)
@@ -388,6 +411,7 @@ public partial class OverlayWindow : Window
         {
             if (generation != _generation) return;
             Visibility = Visibility.Collapsed;
+            RestoreEdgeChrome();
             _isShowing = false;
             _isHiding = false;
             ClearParticles();
@@ -402,6 +426,73 @@ public partial class OverlayWindow : Window
         };
         ContentSlide.BeginAnimation(TranslateTransform.YProperty, slide);
         ContentPanel.BeginAnimation(OpacityProperty, fade);
+    }
+
+    private void ApplyEdgeChrome()
+    {
+        if (!_edgeChromeSaved)
+        {
+            _cardBackground = StickerCard.Background;
+            _cardBorderBrush = StickerCard.BorderBrush;
+            _cardBorderThickness = StickerCard.BorderThickness;
+            _cardEffect = StickerCard.Effect;
+            _edgeChromeSaved = true;
+        }
+        StickerCard.Background = System.Windows.Media.Brushes.Transparent;
+        StickerCard.BorderThickness = new Thickness(0);
+        StickerCard.Effect = null;
+        StickerCard.RenderTransform = new TranslateTransform(30, 0);
+        _edgePeek = true;
+    }
+
+    private void RestoreEdgeChrome()
+    {
+        if (!_edgePeek) return;
+        _edgePeek = false;
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty, null);
+        ContentSlide.X = 0;
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentTilt.Angle = 0;
+        if (_edgeChromeSaved)
+        {
+            StickerCard.Background = _cardBackground;
+            StickerCard.BorderBrush = _cardBorderBrush;
+            StickerCard.BorderThickness = _cardBorderThickness;
+            StickerCard.Effect = _cardEffect;
+        }
+        StickerCard.RenderTransform = null;
+    }
+
+    private void PlayEdgeEntrance()
+    {
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, null);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentPanel.BeginAnimation(OpacityProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        BubbleScale.ScaleX = BubbleScale.ScaleY = 1;
+        if (_app.Config.ReducedMotion)
+        {
+            ContentSlide.X = 0; ContentSlide.Y = 0; ContentTilt.Angle = -2.5;
+            ContentScale.ScaleX = ContentScale.ScaleY = 1; ContentPanel.Opacity = 1;
+            return;
+        }
+        ContentSlide.X = 175; ContentSlide.Y = 0;
+        ContentScale.ScaleX = ContentScale.ScaleY = 0.92;
+        ContentPanel.Opacity = 0;
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(175, 0, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(-7, -2.5, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty,
+            new DoubleAnimation(0.92, 1, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty,
+            new DoubleAnimation(0.92, 1, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));
     }
 
     // ================= Animation vào/ra =================

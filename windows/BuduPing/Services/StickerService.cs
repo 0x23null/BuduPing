@@ -32,6 +32,7 @@ public sealed class StickerService
     public static readonly IReadOnlyDictionary<string, string> TypeLabels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            ["hello"] = "Chào",
             ["love"] = "Yêu",
             ["miss"] = "Nhớ",
             ["hug"] = "Ôm",
@@ -54,6 +55,7 @@ public sealed class StickerService
     {
         "love" or "kiss" => ParticleKind.HeartRise,
         "miss" => ParticleKind.HeartFall,
+        "hello" => ParticleKind.Star,
         "hug" => ParticleKind.Ring,
         "angry" or "tease" or "jealous" => ParticleKind.Puff,
         "sad" => ParticleKind.Rain,

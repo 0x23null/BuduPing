@@ -8,6 +8,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -22,6 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -177,9 +183,13 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             }
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                 Column(Modifier.padding(12.dp)) {
-                    OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
-                        label = { Text("Lời nhắn", maxLines = 1) }, modifier = Modifier.fillMaxWidth(),
-                        singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
+                            label = { Text("Lời nhắn", maxLines = 1) }, modifier = Modifier.weight(1f),
+                            singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
+                        Spacer(Modifier.width(10.dp))
+                        SendButton { send("love") }
+                    }
                     Spacer(Modifier.height(6.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(PRESET_CHIPS) { chip -> AssistChip(onClick = { text = chip.take(80) }, label = { Text(chip) }) }
@@ -230,4 +240,25 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         text = { Text("Mã ${PairCode.format(pairId)} sẽ bị quên trên điện thoại này.") },
         confirmButton = { TextButton(onClick = onUnpair) { Text("Huỷ cặp") } },
         dismissButton = { TextButton(onClick = { unpair = false }) { Text("Giữ lại") } })
+}
+
+/**
+ * The designed send button: a rose-gradient circle with a white paper plane —
+ * replaces the plain default look the owner called out. Sends the composed
+ * message riding a "love" ping (a bare tap with no text is just a love tap).
+ */
+@Composable
+private fun SendButton(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.84f else 1f, label = "sendScale")
+    Box(
+        Modifier.size(48.dp).scale(scale).clip(CircleShape)
+            .background(Brush.linearGradient(listOf(Color(0xFFF77CA6), Color(0xFFCE4A7C))))
+            .clickable(interactionSource = interaction, indication = null) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(painterResource(R.drawable.ic_send), contentDescription = "Gửi lời nhắn",
+            tint = Color.White, modifier = Modifier.size(22.dp))
+    }
 }

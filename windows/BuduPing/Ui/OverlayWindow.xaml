@@ -23,7 +23,7 @@
             <!-- Bong bóng chat: bo góc + đuôi chĩa xuống sticker -->
             <StackPanel x:Name="BubbleWrap" HorizontalAlignment="Center" Margin="0,0,0,4" RenderTransformOrigin="0.5,1">
                 <StackPanel.RenderTransform><ScaleTransform x:Name="BubbleScale"/></StackPanel.RenderTransform>
-                <Border x:Name="Bubble" Background="#FFFCF8" BorderBrush="#E8D9D2" BorderThickness="1" CornerRadius="20"
+                <Border x:Name="Bubble" Background="#F22E2B3A" BorderBrush="#5A5478" BorderThickness="1" CornerRadius="20"
                         Padding="14,12,16,12" MaxWidth="348" Visibility="Collapsed">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.25" Color="#8A5A6A"/>
@@ -31,18 +31,18 @@
                     <StackPanel>
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <Border Width="22" Height="22" CornerRadius="11" Background="#F7E2EA" HorizontalAlignment="Left">
-                                <Path Data="M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z" Fill="#A94769" Stretch="Uniform" Width="12" Height="11"/>
+                            <Border Width="22" Height="22" CornerRadius="11" Background="#46416B" HorizontalAlignment="Left">
+                                <Path Data="M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z" Fill="#FF9EC2" Stretch="Uniform" Width="12" Height="11"/>
                             </Border>
-                            <TextBlock x:Name="BubbleFrom" Grid.Column="1" FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI Variable Text, Segoe UI"
-                                Foreground="#59443B" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0" MaxWidth="170"/>
-                            <TextBlock x:Name="BubbleEmotion" Grid.Column="2" FontSize="11" Foreground="#8B7569" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="BubbleFrom" Grid.Column="1" FontSize="13" FontWeight="SemiBold" FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2"
+                                Foreground="#FFD9E6" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0" MaxWidth="170"/>
+                            <TextBlock x:Name="BubbleEmotion" Grid.Column="2" FontSize="11" Foreground="#C9C3E6" VerticalAlignment="Center"/>
                         </Grid>
-                        <TextBlock x:Name="BubbleText" FontSize="18" LineHeight="27" Foreground="#40332D"
-                                   FontFamily="Segoe UI Variable Text, Segoe UI" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="BubbleText" FontSize="19" LineHeight="28" Foreground="#FFFFFF"
+                                   FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
-                <Path x:Name="BubbleTail" Data="M0,0 L18,0 L9,13 Z" Fill="#FFFCF8"
+                <Path x:Name="BubbleTail" Data="M0,0 L18,0 L9,13 Z" Fill="#F22E2B3A"
                       HorizontalAlignment="Center" Margin="0,-1,0,0" Visibility="Collapsed"/>
             </StackPanel>
 

@@ -4,6 +4,16 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import com.buduping.app.R
+
+/** Rounded, chunky font (Baloo 2, OFL, full Vietnamese) for cute labels, chips and buttons. */
+val BalooFamily = FontFamily(
+    Font(R.font.baloo2, FontWeight.Normal),
+    Font(R.font.baloo2, FontWeight.Bold),
+)
 
 private val Day = lightColorScheme(
     primary = Color(0xFFA93F65), onPrimary = Color.White,

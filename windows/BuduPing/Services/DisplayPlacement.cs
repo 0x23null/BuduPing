@@ -39,6 +39,24 @@ public static class DisplayPlacement
             Math.Min(w, d.Right - d.Left), Math.Min(h, d.Bottom - d.Top), 0x0010 | 0x0004);
     }
 
+    /// <summary>
+    /// Edge-peek placement: the window straddles the RIGHT rim of the target
+    /// display — only the left ~58% stays on screen, so the character appears
+    /// cropped by the screen edge itself (desktop-buddy style). Bottom-aligned.
+    /// </summary>
+    public static void PlacePeekRight(Window window, string device)
+    {
+        var displays = GetDisplays();
+        var d = displays.FirstOrDefault(x => x.Device == device) ?? displays.FirstOrDefault();
+        if (d == null) return;
+        double factor = d.Dpi / 96.0;
+        int w = (int)Math.Round(window.Width * factor), h = (int)Math.Round(window.Height * factor);
+        int visible = (int)(w * 0.58);
+        int x = d.Right - visible;
+        int y = d.Bottom - h - (int)(8 * factor);
+        SetWindowPos(new WindowInteropHelper(window).Handle, IntPtr.Zero, x, Math.Max(d.Top, y), w, h, 0x0010 | 0x0004);
+    }
+
     [StructLayout(LayoutKind.Sequential)] private struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] private struct MonitorInfo
     {

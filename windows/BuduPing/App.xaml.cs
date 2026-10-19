@@ -138,6 +138,11 @@ public partial class App : Application
                 _overlay.ShowPing(new PingEvent { Type = "love", Variant = "love-03", IsLocal = true });
                 await Task.Delay(750);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-small.png");
+                _overlay.ResetPair();
+                Config.OverlayScale = 1;
+                _overlay.ShowPing(new PingEvent { Type = "hello", IsLocal = true });
+                await Task.Delay(850);
+                SaveVisual((FrameworkElement)_overlay.Content, "overlay-hello.png");
                 Config.DiscreetMode = true; Config.MyCharacter = "bubu";
                 _overlay.ResetPair();
                 SendTestPing(); await Task.Delay(200);
