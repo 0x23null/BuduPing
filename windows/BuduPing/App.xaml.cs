@@ -118,7 +118,7 @@ public partial class App : Application
                     !_stickers.HasForCharacter("sad", "bubu"))
                     throw new InvalidOperationException("Native character catalog mapping is incorrect.");
                 _overlay = new OverlayWindow(_stickers, this);
-                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương",
+                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương", Character = "bubu",
                     Text = "Một cái ôm gửi đến bạn. Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
                 await Task.Delay(950);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-message.png");
