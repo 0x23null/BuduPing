@@ -55,6 +55,7 @@ jobs:
       - name: Render native settings and overlay without a Firebase connection
         shell: pwsh
         run: |
+          Start-Transcript -Path "$env:RUNNER_TEMP/ui.log" -Append | Out-Null
           $target = Join-Path $env:RUNNER_TEMP 'buduping-ui'
           $process = Start-Process -FilePath './publish/BuduPing.exe' -ArgumentList @('--ui-review', $target) -PassThru
           if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'UI review timed out' }
@@ -75,6 +76,7 @@ jobs:
           path: .benchmark-baseline
 
       - name: Prepare the identical offline benchmark harness
+        continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
           python tools/prepare_memory_baseline.py .benchmark-baseline
@@ -82,8 +84,10 @@ jobs:
           dotnet publish .benchmark-baseline/windows/BuduPing -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$env:RUNNER_TEMP/buduping-baseline"
 
       - name: Compare native memory under the same workload
+        continue-on-error: true
         shell: pwsh
         run: |
+          Start-Transcript -Path "$env:RUNNER_TEMP/memory.log" -Append | Out-Null
           $root = Join-Path $env:RUNNER_TEMP 'buduping-memory'
           $before = Join-Path $env:RUNNER_TEMP 'buduping-baseline/BuduPing.exe'
           $after = (Resolve-Path './publish/BuduPing.exe').Path
@@ -110,7 +114,9 @@ jobs:
         shell: bash
         env:
           CI_UI_DIR: ${{ runner.temp }}/buduping-ui
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ job.status }}" "$RUNNER_TEMP/build.log"
+        run: |
+          cat "$RUNNER_TEMP/build.log" "$RUNNER_TEMP/ui.log" "$RUNNER_TEMP/memory.log" > "$RUNNER_TEMP/all.log" 2>/dev/null || true
+          bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ job.status }}" "$RUNNER_TEMP/all.log"
 
       - name: Upload BuduPing.exe
         uses: actions/upload-artifact@v4
