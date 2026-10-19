@@ -17,6 +17,12 @@ val EMOTIONS = listOf(
     Emotion("cheer", "Cố lên", "💪"),
     Emotion("hungry", "Đói", "🍜"),
     Emotion("goodnight", "Ngủ ngon", "🌙"),
+    Emotion("dance", "Nhảy", "💃"),
+    Emotion("wow", "Wow", "😲"),
+    Emotion("shy", "Ngại", "🙈"),
+    Emotion("ok", "Ok", "👌"),
+    Emotion("proud", "Kiêu", "😎"),
+    Emotion("sleepy", "Buồn ngủ", "🥱"),
 )
 
 /** Short labels used by the daily fun counter. */
@@ -34,6 +40,12 @@ val FUN_LABELS = mapOf(
     "cheer" to "cố lên",
     "hungry" to "đói",
     "goodnight" to "ngủ ngon",
+    "dance" to "nhảy",
+    "wow" to "wow",
+    "shy" to "ngại",
+    "ok" to "ok",
+    "proud" to "kiêu",
+    "sleepy" to "buồn ngủ",
 )
 
 /** Short one-tap preset message chips. */

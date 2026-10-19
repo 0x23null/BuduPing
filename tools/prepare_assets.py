@@ -10,7 +10,7 @@ from PIL import Image, ImageChops
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'windows/BuduPing/Assets/Stickers'
 ANDROID = ROOT / 'android/app/src/main/assets'
-TYPES = {'miss', 'love', 'hug', 'kiss', 'tease', 'angry', 'sad', 'sorry', 'funny', 'cheer', 'hungry', 'goodnight'}
+TYPES = {'miss', 'love', 'hug', 'kiss', 'tease', 'angry', 'sad', 'sorry', 'funny', 'cheer', 'hungry', 'goodnight', 'hello', 'dance', 'wow', 'shy', 'ok', 'proud', 'sleepy'}
 
 # Which character(s) appear in each sticker, keyed by file stem.
 # "dudu" = brown bear, "bubu" = white panda. Corrected by owner 2026-10-19. Curated by visual audit
@@ -44,6 +44,37 @@ CHARACTERS = {
     'sorry-01': ['bubu'],  # white panda bowing alone
     'sorry-02': ['bubu'],
     'tease-02': ['bubu', 'dudu'],
+    'hello-01': ['bubu'],
+    'hello-02': ['bubu'],
+    'hello-03': ['dudu'],
+    'peek-01': ['dudu'],
+    'peek-02': ['bubu'],
+    'peek-03': ['bubu'],
+    'hang-01': ['bubu'],
+    'dance-01': ['dudu'],
+    'dance-02': ['dudu'],
+    'dance-03': ['bubu'],
+    'dance-04': ['bubu'],
+    'wow-01': ['bubu'],
+    'wow-02': ['dudu'],
+    'shy-01': ['bubu'],
+    'shy-02': ['bubu'],
+    'shy-03': ['bubu'],
+    'ok-01': ['dudu'],
+    'proud-01': ['dudu'],
+    'sleepy-01': ['dudu'],
+    'sleepy-02': ['bubu'],
+    'sad-03': ['bubu'],
+    'miss-05': ['bubu', 'dudu'],
+    'hungry-03': ['dudu'],
+    'cheer-04': ['dudu'],
+    'angry-03': ['dudu'],
+    'tease-03': ['bubu', 'dudu'],
+    'tease-04': ['bubu', 'dudu'],
+    'tease-05': ['bubu', 'dudu'],
+    'funny-04': ['bubu'],
+    'funny-05': ['bubu', 'dudu'],
+    'funny-06': ['dudu'],
 }
 
 

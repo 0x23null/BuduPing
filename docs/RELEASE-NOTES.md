@@ -1,12 +1,13 @@
-# BuduPing 0.2.2
+BuduPing 0.2.3 — "Chào" từ mép màn hình, 58 sticker, bong bóng chữ tròn
 
-- Sticker còn khoảng 45% kích thước cũ; mức Nhỏ nhỏ hơn rõ rệt. Lời nhắn vẫn dễ đọc.
-- Bubu là gấu trắng, Dudu là gấu nâu. Sửa ảnh chọn, nhãn và bộ lọc; giữ nhân vật đã chọn khi nâng cấp.
-- Đổi tiếng pop sang các nhịp a-ta-ta/ta ngắn. Spam có nhịp nảy, điểm nhấn combo và giới hạn âm thanh/hạt để ưu tiên hiệu năng.
-- Sửa combo từ Android bị tách vì mã sticker; giữ đúng nhân vật khi đổi biến thể.
-- Test sticker và gửi ôm đáp lại tôn trọng chế độ kín đáo.
-- Bỏ nút Đóng thừa; chỉnh header lời nhắn gọn hơn.
-- Mở EXE có thông báo đã chạy; mở lần nữa đưa cài đặt lên thay vì tạo thêm tiến trình. Khởi động cùng Windows vẫn yên lặng.
-- Giữ cơ chế quản lý RAM của 0.2.1, thêm kiểm tra native và so sánh RAM/CPU cùng điều kiện.
+ĐIỆN THOẠI (Android)
+- Cảm xúc mới "Chào": người thương bấm Chào là bên PC có đứa thò ra từ mép phải màn hình chào lại.
+- Thêm 6 cảm xúc mới: Nhảy, Wow, Ngại, Ok, Kiêu, Buồn ngủ — tổng 19 cảm xúc, 58 sticker.
+- Chữ cảm xúc dùng font tròn Baloo 2; nút gửi tin nhắn là nút tròn hồng có hình máy bay giấy.
 
-Android là APK debug; chữ ký của runner có thể khác bản đã cài. Báo cáo kỹ thuật: `docs/DEVELOPMENT-REPORT-0.2.2.md`.
+MÁY TÍNH (Windows)
+- "Chào" không lời nhắn sẽ hiện kiểu pet: sticker trượt ra từ mép phải màn hình, nghiêng người, không khung thẻ; chào kèm lời nhắn vẫn hiện thẻ như thường.
+- Bong bóng lời nhắn đổi sang nền navy đậm, chữ tròn Baloo 2 dễ thương hơn, đúng chất desktop buddy.
+- Sticker mới cho peek/chào: thò sau tủ, ló sau cửa, vẫy tay, bám cành… cùng loạt nhảy múa, ngạc nhiên, xấu hổ cho cả hai đứa.
+
+Cài đè lên bản cũ, giữ nguyên ghép đôi và cài đặt.
