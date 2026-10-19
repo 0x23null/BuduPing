@@ -9,6 +9,15 @@ namespace BuduPing.Services;
 public sealed class SoundService : IDisposable
 {
     private static readonly string[] CueNames = { "atata", "ta", "ta-accent" };
+
+    /// <summary>Per-character voice cues (measured from the source clips — docs/SOUND-REPORT.md):
+    /// the white panda's voice sits ~an octave above the brown bear's. Each set is
+    /// [greeting, tap, accent], the same slots Play() already uses for the default set.</summary>
+    private static readonly Dictionary<string, string[]> VoiceCues = new()
+    {
+        ["bubu"] = new[] { "bubu-atata", "bubu-ta", "bubu-lala" },
+        ["dudu"] = new[] { "dudu-tata", "dudu-hum", "dudu-tata" },
+    };
     private const int Slots = 2;
     private const uint WaveMapper = 0xFFFFFFFF;
     private const uint CallbackFunction = 0x00030000;
@@ -72,6 +81,7 @@ public sealed class SoundService : IDisposable
     }
 
     private readonly List<short[]> _notes = new();
+    private readonly Dictionary<string, List<short[]>> _voices = new();
     private int _sampleRate = 22050;
     private readonly List<Slot> _slots = new();
     private readonly WaveOutProc _callback; // giữ sống suốt đời service — native gọi lại qua delegate này
@@ -100,6 +110,22 @@ public sealed class SoundService : IDisposable
                 _sampleRate = rate;
                 loudestWav = bytes;
             }
+            foreach (var (character, cues) in VoiceCues)
+            {
+                var set = new List<short[]>();
+                foreach (string cue in cues)
+                {
+                    using var s = asm.GetManifestResourceStream($"BuduPing.Assets.Sounds.{cue}.wav");
+                    if (s == null) continue;
+                    using var ms = new MemoryStream();
+                    s.CopyTo(ms);
+                    var (samples, rate) = ParseWav(ms.ToArray());
+                    if (samples.Length == 0) continue;
+                    set.Add(samples);
+                    _sampleRate = rate;
+                }
+                if (set.Count > 0) _voices[character] = set;
+            }
         }
         catch { /* không có tiếng cũng không sao */ }
 
@@ -117,7 +143,7 @@ public sealed class SoundService : IDisposable
                     wBitsPerSample = 16,
                     cbSize = 0,
                 };
-                int maxLen = _notes.Max(n => n.Length);
+                int maxLen = _notes.Concat(_voices.Values.SelectMany(v => v)).Max(n => n.Length);
                 for (int i = 0; i < Slots; i++)
                 {
                     if (waveOutOpen(out var h, WaveMapper, ref fmt, _callback, IntPtr.Zero, CallbackFunction) != 0) break;
@@ -156,8 +182,10 @@ public sealed class SoundService : IDisposable
         catch { }
     }
 
-    /// <summary>New reaction: a-ta-ta. Following taps: one ta; accents at combo milestones.</summary>
-    public void Play(int comboCount)
+    /// <summary>New reaction: the sender's character greets in its own voice.
+    /// Following taps: that voice's short beat; accents at combo milestones.
+    /// Unknown character = the original generic atata set.</summary>
+    public void Play(int comboCount, string character = "", string type = "")
     {
         if (_disposed) return;
         long now = _clock.ElapsedMilliseconds;
@@ -170,8 +198,12 @@ public sealed class SoundService : IDisposable
         }
         try
         {
-            int idx = Math.Min(comboCount <= 1 ? 0 : Core.PresentationPolicy.IsAccent(comboCount) ? 2 : 1, _notes.Count - 1);
-            var samples = _notes[idx];
+            var set = character != null && _voices.TryGetValue(character, out var voice) ? voice : _notes;
+            int idx = Math.Min(comboCount <= 1 ? 0 : Core.PresentationPolicy.IsAccent(comboCount) ? 2 : 1, set.Count - 1);
+            // A somber mood from the brown bear answers with his low hum, not a greeting.
+            if (comboCount <= 1 && character == "dudu" && set.Count > 1 &&
+                type is "sad" or "sorry" or "sleepy" or "goodnight" or "angry") idx = 1;
+            var samples = set[idx];
             double gain = Core.PresentationPolicy.IsAccent(comboCount) ? .42 : .36;
             var slot = _slots.FirstOrDefault(s => !s.Busy);
             if (slot == null) return; // Saturated: coalesce, never steal a live buffer or build a queue.

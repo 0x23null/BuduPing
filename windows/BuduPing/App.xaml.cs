@@ -392,9 +392,9 @@ public partial class App : Application
 
     private void LoadPopSound() => _sounds = new SoundService();
 
-    public void PlayPop(int comboCount = 1)
+    public void PlayPop(int comboCount = 1, string character = "", string type = "")
     {
-        if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount);
+        if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount, character, type);
     }
 
 

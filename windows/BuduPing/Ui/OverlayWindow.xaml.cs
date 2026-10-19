@@ -336,7 +336,7 @@ public partial class OverlayWindow : Window
                     BurstFor(ping.Type, StickerCenter(), 1);
                 }, DispatcherPriority.Loaded);
             }
-            _app.PlayPop();
+            _app.PlayPop(1, ping.Character, ping.Type);
             // One callback after composition starts, not when the event merely enters a queue.
             EventHandler? rendered = null;
             rendered = (_, _) =>
@@ -394,7 +394,7 @@ public partial class OverlayWindow : Window
         ComboBadge.Visibility = Visibility.Visible;
         // Audio and motion respond to this received beat. Excess events update the counter,
         // never schedule a backlog of sounds, decodes or animation clocks.
-        _app.PlayPop(_activeCount);
+        _app.PlayPop(_activeCount, _current?.Character ?? "", _activeType);
         if (_app.Config.ReducedMotion) return;
         long now = _feedbackClock.ElapsedMilliseconds;
         if (now - _lastVisualBeat < PresentationPolicy.VisualGapMs) return;

@@ -1,6 +1,7 @@
 BuduPing 0.2.4 — vá theo cảm nhận dùng thật: đổi mood mượt, app gọn hơn
 
 MÁY TÍNH (Windows)
+- TIẾNG NÓI RIÊNG CỦA HAI ĐỨA: Bubu (gấu trắng) và Dudu (gấu nâu) giờ có giọng khác nhau thật — đo từ clip gốc, giọng Bubu cao hơn hẳn một quãng tám. Ai gửi thì đứa đó lên tiếng: chào hỏi, gõ nhịp combo, cả tiếng "hừm" trầm khi Dudu buồn/ngủ/giận.
 - Đang hiện mà người thương đổi cảm xúc khác: sticker mới được giải mã ngầm rồi thay vào kèm một nhịp nảy nhẹ tại chỗ — không còn khựng, không bật lại từ đầu như thông báo.
 - Bong bóng lời nhắn hiện ảnh nhân vật của người gửi (Bubu/Dudu) thay cho icon tim chung chung; emoji trong lời nhắn hiển thị đúng màu.
 
