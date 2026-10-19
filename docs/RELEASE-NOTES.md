@@ -1,17 +1,10 @@
-BuduPing 0.2.4 — vá theo cảm nhận dùng thật: đổi mood mượt, app gọn hơn
+BuduPing 0.2.5 — nền trong suốt hoàn toàn
 
 MÁY TÍNH (Windows)
-- TIẾNG NÓI RIÊNG CỦA HAI ĐỨA: Bubu (gấu trắng) và Dudu (gấu nâu) giờ có giọng khác nhau thật — đo từ clip gốc, giọng Bubu cao hơn hẳn một quãng tám. Ai gửi thì đứa đó lên tiếng: chào hỏi, gõ nhịp combo, cả tiếng "hừm" trầm khi Dudu buồn/ngủ/giận.
-- Đang hiện mà người thương đổi cảm xúc khác: sticker mới được giải mã ngầm rồi thay vào kèm một nhịp nảy nhẹ tại chỗ — không còn khựng, không bật lại từ đầu như thông báo.
-- Bong bóng lời nhắn hiện ảnh nhân vật của người gửi (Bubu/Dudu) thay cho icon tim chung chung; emoji trong lời nhắn hiển thị đúng màu.
+- Sticker giờ nổi trực tiếp trên desktop với nền trong suốt 100%: bỏ hẳn tấm thẻ trắng-hồng, vòng sáng và quầng hồng sau sticker. Chỉ còn hình sticker (và bong bóng khi có lời nhắn).
+- Áp dụng cho mọi cách hiện: góc màn hình, chế độ kín đáo, và "Chào" thò ra từ mép màn hình.
 
 ĐIỆN THOẠI (Android)
-- Bỏ dòng trạng thái "Tên · PC đang mở" (chấm xanh ở góc trên vẫn báo PC online).
-- Lưới cảm xúc gọn còn 16 ô (4 hàng chẵn): bỏ Nhảy/Ok/Kiêu, Buồn ngủ lên thay chỗ Nhảy.
-- Icon app: hình hai đứa ôm nhau to rõ hơn hẳn.
-
-CẢ HAI
-- Bỏ sticker quấn chăn (Buồn) theo yêu cầu; catalog còn 51 sticker / 16 cảm xúc.
-- Đã kiểm tra độ trong suốt từng frame của toàn bộ sticker: nền trong suốt thật, không còn quầng đục.
+- Không đổi tính năng; chỉ tăng số phiên bản đi kèm bản PC.
 
 Cài đè lên bản cũ, giữ nguyên ghép đôi và cài đặt.

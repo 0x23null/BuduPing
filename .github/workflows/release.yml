@@ -119,7 +119,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: "BuduPing ${{ needs.version.outputs.tag }} — device-feedback polish, smooth mood switches, tidier phone grid"
+          name: "BuduPing ${{ needs.version.outputs.tag }} — full transparent background"
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |
