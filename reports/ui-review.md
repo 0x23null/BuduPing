@@ -1,9 +1,9 @@
 # CI report: ui-review
 - status: failure
 - workflow: Android UI review
-- run: 39268891049/14
-- sha: 5fb69aba1357d0479e534512270de695daeebffc
-- time: 2026-10-19T14:34:25Z
+- run: 39288747414/15
+- sha: 47ebda8530552d9b243416704ab7f8d703aafc5d
+- time: 2026-10-19T16:55:49Z
 
 ## build log (tail 300)
 ```
@@ -25,8 +25,8 @@ Daemon will be stopped at the end of the build
 > Task :app:preBuild UP-TO-DATE
 > Task :app:preDebugBuild UP-TO-DATE
 > Task :app:generateDebugResValues
-> Task :app:processDebugGoogleServices
 > Task :app:checkDebugAarMetadata
+> Task :app:processDebugGoogleServices
 > Task :app:mapDebugSourceSetPaths
 > Task :app:generateDebugResources
 > Task :app:packageDebugResources
@@ -36,8 +36,8 @@ Daemon will be stopped at the end of the build
 > Task :app:parseDebugLocalResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
-> Task :app:processDebugManifestForPackage
 > Task :app:javaPreCompileDebug
+> Task :app:processDebugManifestForPackage
 > Task :app:preDebugAndroidTestBuild SKIPPED
 > Task :app:processDebugResources
 > Task :app:checkDebugAndroidTestAarMetadata
@@ -57,20 +57,18 @@ Daemon will be stopped at the end of the build
 > Task :app:checkDebugDuplicateClasses
 > Task :app:mergeDebugStartupProfile
 > Task :app:compileDebugKotlin
-> Task :app:mergeExtDexDebug
-
-> Task :app:compileDebugKotlin
 w: file:///home/runner/work/BuduPing/BuduPing/android/app/src/main/java/com/buduping/app/ui/HomeScreen.kt:99:59 'static field VIBRATOR_SERVICE: String' is deprecated. Deprecated in Java.
 w: file:///home/runner/work/BuduPing/BuduPing/android/app/src/main/java/com/buduping/app/ui/PairScreen.kt:71:47 'constructor(capitalization: KeyboardCapitalization = ..., autoCorrect: Boolean, keyboardType: KeyboardType = ..., imeAction: ImeAction = ..., platformImeOptions: PlatformImeOptions? = ..., showKeyboardOnFocus: Boolean? = ..., hintLocales: LocaleList? = ...): KeyboardOptions' is deprecated. Please use the new constructor that takes optional autoCorrectEnabled parameter.
 w: file:///home/runner/work/BuduPing/BuduPing/android/app/src/main/java/com/buduping/app/ui/PairScreen.kt:77:47 'constructor(capitalization: KeyboardCapitalization = ..., autoCorrect: Boolean, keyboardType: KeyboardType = ..., imeAction: ImeAction = ..., platformImeOptions: PlatformImeOptions? = ..., showKeyboardOnFocus: Boolean? = ..., hintLocales: LocaleList? = ...): KeyboardOptions' is deprecated. Please use the new constructor that takes optional autoCorrectEnabled parameter.
 
+> Task :app:mergeExtDexDebug
 > Task :app:compileDebugJavaWithJavac NO-SOURCE
 > Task :app:bundleDebugClassesToCompileJar
-> Task :app:compileDebugAndroidTestKotlin
 > Task :app:dexBuilderDebug
-> Task :app:compileDebugAndroidTestJavaWithJavac NO-SOURCE
 > Task :app:mergeDebugGlobalSynthetics
 > Task :app:processDebugJavaRes
+> Task :app:compileDebugAndroidTestKotlin
+> Task :app:compileDebugAndroidTestJavaWithJavac NO-SOURCE
 > Task :app:mergeLibDexDebug
 > Task :app:mergeProjectDexDebug
 > Task :app:mergeDebugJniLibFolders
@@ -94,13 +92,13 @@ Unable to strip the following libraries, packaging them as they are: libandroidx
 > Task :app:packageDebug
 > Task :app:createDebugApkListingFileRedirect
 > Task :app:processDebugAndroidTestJavaRes
-> Task :app:checkDebugAndroidTestDuplicateClasses
 > Task :app:mergeDebugAndroidTestJavaResource
+> Task :app:checkDebugAndroidTestDuplicateClasses
+> Task :app:mergeDebugAndroidTestJniLibFolders
 > Task :app:mergeExtDexDebugAndroidTest
 > Task :app:mergeLibDexDebugAndroidTest
-> Task :app:mergeDebugAndroidTestJniLibFolders
-> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
 > Task :app:mergeProjectDexDebugAndroidTest
+> Task :app:mergeDebugAndroidTestNativeLibs NO-SOURCE
 > Task :app:stripDebugAndroidTestDebugSymbols NO-SOURCE
 > Task :app:validateSigningDebugAndroidTest
 > Task :app:writeDebugAndroidTestSigningConfigVersions
@@ -115,8 +113,7 @@ com.buduping.app.HomeUiTest > narrowLargeText[emulator-5554 - 11] [31mFAILED [
 	java.lang.AssertionError: Assert failed: The component is not displayed!
 	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
 
-emulator-5554 - 11 Tests 2/6 completed. (0 skipped) (1 failed)
-emulator-5554 - 11 Tests 5/6 completed. (0 skipped) (1 failed)
+emulator-5554 - 11 Tests 3/6 completed. (0 skipped) (1 failed)
 Finished 6 tests on emulator-5554 - 11
 
 > Task :app:connectedDebugAndroidTest
@@ -136,6 +133,6 @@ Execution failed for task ':app:connectedDebugAndroidTest'.
 > Run with --scan to get full insights.
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 6m 8s
+BUILD FAILED in 4m 10s
 65 actionable tasks: 65 executed
 ```
