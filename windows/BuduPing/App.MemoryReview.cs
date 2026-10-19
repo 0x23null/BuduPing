@@ -64,7 +64,9 @@ public partial class App
                     await Task.Delay(75);
                 }
                 await Task.Delay(3500);
-                phase = "idle"; Sample(); process.Refresh();
+                // Stop the 500 ms process-query sampler before timing idle CPU.
+                // Otherwise the profiler's own queries are counted as app idle work.
+                phase = "idle"; Sample(); sampler.Stop(); process.Refresh();
                 double idleCpuStart = process.TotalProcessorTime.TotalMilliseconds;
                 var idle = Stopwatch.StartNew();
                 await Task.Delay(25000); Sample(); process.Refresh();
