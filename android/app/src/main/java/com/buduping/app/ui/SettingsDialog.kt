@@ -98,6 +98,23 @@ fun SettingsDialog(
                     }
                 }
                 Spacer(Modifier.height(16.dp))
+                Text("Kết nối nền", style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "App chạy nền để nhận ôm đáp ngay cả khi đóng app (có một thông báo nhỏ cố định của hệ thống). Nếu máy hay tự tắt app nền, hãy cho phép BuduPing không bị tối ưu pin.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(onClick = {
+                    runCatching {
+                        context.startActivity(android.content.Intent(
+                            android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                    }
+                }) {
+                    Text("Cho phép chạy nền")
+                }
+                Spacer(Modifier.height(16.dp))
                 val version = remember {
                     runCatching {
                         context.packageManager.getPackageInfo(context.packageName, 0).versionName

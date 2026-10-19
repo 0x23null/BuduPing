@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.*
 import androidx.compose.foundation.layout.*
@@ -50,12 +50,17 @@ fun EmotionTile(emotion: Emotion, variant: StickerVariant?, favorite: Boolean, e
     val scale by animateFloatAsState(if (pressed) 0.88f else 1f,
         spring(dampingRatio = 0.42f, stiffness = Spring.StiffnessMedium), label = "touch")
     val burst = remember { Animatable(1f) }
-    val pop = remember { Animatable(1f) }
-    val scope = rememberCoroutineScope()
+    // Pop is a RETARGETED spring: under fast spam it bends mid-flight instead
+    // of snapping back to 1.22 every tap (the old snap restart read as jank).
+    var popTarget by remember { mutableFloatStateOf(1f) }
+    val pop by animateFloatAsState(popTarget,
+        spring(dampingRatio = 0.32f, stiffness = 380f), label = "pop")
     LaunchedEffect(burstToken) {
         if (burstToken > 0) {
-            burst.snapTo(0f); burst.animateTo(1f, tween(520))
-            scope.launch { pop.snapTo(1.22f); pop.animateTo(1f, spring(dampingRatio = 0.38f, stiffness = 320f)) }
+            burst.snapTo(0f); burst.animateTo(1f, tween(430, easing = FastOutSlowInEasing))
+            popTarget = 1.18f
+            delay(80)
+            popTarget = 1f
         }
     }
     val rose = MaterialTheme.colorScheme.primary
@@ -70,7 +75,7 @@ fun EmotionTile(emotion: Emotion, variant: StickerVariant?, favorite: Boolean, e
                 onClickLabel = "Gửi ${emotion.label}", onLongClickLabel = "Chọn sticker ${emotion.label}")
             .semantics(mergeDescendants = true) { contentDescription = emotion.label + if (favorite) ", đã ghim" else "" }) {
         Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.weight(1f).fillMaxWidth().graphicsLayer { scaleX = pop.value; scaleY = pop.value },
+            Box(Modifier.weight(1f).fillMaxWidth().graphicsLayer { scaleX = pop; scaleY = pop },
                 contentAlignment = Alignment.Center) {
                 StickerArt(variant, Modifier.fillMaxSize())
             }

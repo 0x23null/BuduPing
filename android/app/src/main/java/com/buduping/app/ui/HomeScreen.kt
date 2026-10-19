@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
@@ -85,9 +86,24 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         }
     }
     val foregroundNow by rememberUpdatedState(isForeground)
+    // Keep the background reply listener (foreground service) running while paired.
+    LaunchedEffect(pairId) { if (pairId.isNotBlank()) ReplyService.start(context) }
     LaunchedEffect(lastTap) { if (lastTap > 0) { delay(2_000); comboCount = 0 } }
     val comboProgress by animateFloatAsState((comboCount / 8f).coerceIn(0f, 1f),
-        spring(dampingRatio = 0.6f, stiffness = 220f), label = "combo")
+        spring(dampingRatio = 0.5f, stiffness = 320f), label = "combo")
+    // The bar renders this snapshot so its exit animation does not flash "x0".
+    var shownComboType by remember { mutableStateOf("") }
+    var shownComboCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(comboCount) {
+        if (comboCount > 0) { shownComboType = comboType; shownComboCount = comboCount }
+    }
+    val barPulse = remember { androidx.compose.animation.core.Animatable(1f) }
+    LaunchedEffect(comboCount) {
+        if (comboCount >= 2) {
+            barPulse.snapTo(1.05f)
+            barPulse.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 260f))
+        }
+    }
     var catalogError by remember { mutableStateOf(false) }
     val catalog by produceState<List<StickerVariant>>(emptyList()) {
         value = withContext(Dispatchers.IO) {
@@ -177,12 +193,22 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     }
                 }
             }
-            if (comboCount > 0) {
-            val level = if (comboCount >= 8) 4 else if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
+            AnimatedVisibility(visible = comboCount > 0,
+                enter = androidx.compose.animation.fadeIn(tween(160)) +
+                    androidx.compose.animation.expandVertically(tween(240), expandFrom = Alignment.Top),
+                exit = androidx.compose.animation.fadeOut(tween(220)) +
+                    androidx.compose.animation.shrinkVertically(tween(280), shrinkTowards = Alignment.Top)) {
+            val level = if (shownComboCount >= 8) 4 else if (shownComboCount >= 5) 3 else if (shownComboCount >= 3) 2 else 1
             val levelName = listOf("Nhẹ nhàng", "Ấm áp", "Nồng nhiệt", "Bùng cháy")[level - 1]
-            val moodLabel = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
+            val moodLabel = EMOTIONS.firstOrNull { it.type == shownComboType }?.label ?: "Cảm xúc"
+            val gradStart by androidx.compose.animation.animateColorAsState(
+                when (level) { 4 -> Color(0xFFFF6A3D); 3 -> Color(0xFFFF7A59); else -> Color(0xFFF77CA6) },
+                tween(350), label = "gradStart")
+            val gradEnd by androidx.compose.animation.animateColorAsState(
+                if (level >= 3) Color(0xFFFFD23F) else Color(0xFFFFB35C), tween(350), label = "gradEnd")
             Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    .graphicsLayer { scaleX = barPulse.value; scaleY = barPulse.value }) {
                 Column(Modifier.padding(14.dp, 12.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("$moodLabel · $levelName",
@@ -193,9 +219,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(8.dp))
                         Box(Modifier.clip(RoundedCornerShape(50))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFF77CA6), Color(0xFFFFB35C))))
+                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd))))
                             .padding(horizontal = 10.dp, vertical = 3.dp)) {
-                            Text("x$comboCount", style = MaterialTheme.typography.labelLarge,
+                            Text("x$shownComboCount", style = MaterialTheme.typography.labelLarge,
                                 fontFamily = BalooFamily, color = Color.White)
                         }
                     }
@@ -203,7 +229,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50))
                         .background(Color.White.copy(alpha = 0.08f))) {
                         Box(Modifier.fillMaxWidth(comboProgress).fillMaxHeight().clip(RoundedCornerShape(50))
-                            .background(Brush.horizontalGradient(listOf(Color(0xFFF77CA6), Color(0xFFFFB35C)))))
+                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd))))
                     }
                 }
             }
@@ -213,8 +239,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
                 items(ordered, key = { it.type }) { emotion ->
                     val allowed = StickerCatalog.allowedFor(catalog, emotion.type, myCharacter)
-                    val preview = allowed.firstOrNull { StickerCatalog.charactersOf(it) == setOf(myCharacter) }
-                    EmotionTile(emotion, preview ?: allowed.firstOrNull(),
+                    EmotionTile(emotion, StickerCatalog.previewFor(catalog, emotion.type, myCharacter),
                         emotion.type in favorites,
                         enabled = allowed.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
                         onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
@@ -238,13 +263,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             Text("Giữ một cảm xúc để chọn sticker hoặc ghim.", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             if (catalogError) Text("Chưa tải được sticker. Mở lại ứng dụng để thử lại.", color = MaterialTheme.colorScheme.error)
+            // Only problems earn a line here — the resting "Đã hiện trên PC"
+            // status was noise the owner asked to remove.
             val statusLabel = when (status) {
-                "sending" -> if (connected) "Đang gửi…" else "Đang chờ mạng…"
-                "sent" -> if (online) "Đã gửi · chờ PC hiển thị" else "Đã gửi · chờ PC mở"
-                "displayed" -> "Đã hiện trên PC"
-                "received" -> "PC đã nhận · nội dung đang ẩn"
-                "expired" -> "Cảm xúc cũ đã hết hạn"
-                "superseded" -> "Đã gộp vào chuỗi cảm xúc"
                 "unavailable" -> "Chưa có sticker cho nhân vật này. Chọn cảm xúc khác nhé."
                 "failed" -> "Chưa gửi được · lời nhắn được giữ lại"
                 "permission_error" -> "Không đọc được kết nối · kiểm tra Firebase"

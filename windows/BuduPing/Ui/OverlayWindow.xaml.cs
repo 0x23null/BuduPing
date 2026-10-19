@@ -99,10 +99,14 @@ public partial class OverlayWindow : Window
         _hideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ShowSeconds) };
         _hideTimer.Tick += (_, _) => HideCurrent();
 
-        _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        // First tick comes early (6s): launch-time working-set bulk (runtime +
+        // WPF + preloaded GIF bytes) gets handed back quickly instead of
+        // lingering ~20s. Post-hide cycles then use the calmer 20s cadence.
+        _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
         _idleTimer.Tick += (_, _) =>
         {
             _idleTimer.Stop();
+            _idleTimer.Interval = TimeSpan.FromSeconds(20);
             if (_isShowing) return;
             _stickers.ReleaseDecoded();
             MemoryTrim.TrimIdle(_stickers.DecodedBytes);

@@ -13,8 +13,8 @@ import com.buduping.app.ui.PairScreen
 
 class MainActivity : ComponentActivity() {
     private var foreground by mutableStateOf(false)
-    override fun onStart() { super.onStart(); foreground = true }
-    override fun onStop() { foreground = false; super.onStop() }
+    override fun onStart() { super.onStart(); foreground = true; AppForeground.isForeground = true }
+    override fun onStop() { foreground = false; AppForeground.isForeground = false; super.onStop() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,10 +39,12 @@ class MainActivity : ComponentActivity() {
                         repo = repo,
                         isForeground = foreground,
                         onUnpair = {
+                            ReplyService.stop(this@MainActivity)
                             prefs.clearPair()
                             screen = Screen.Pair
                         },
                         onChangeCode = {
+                            ReplyService.stop(this@MainActivity)
                             prefs.clearPair()
                             screen = Screen.Pair
                         },

@@ -45,6 +45,19 @@ object StickerCatalog {
     fun allowedFor(catalog: List<StickerVariant>, type: String, me: String?): List<StickerVariant> =
         catalog.filter { it.type == type && (me.isNullOrBlank() || me in charactersOf(it)) }
 
+    /** Tile artwork: prefer the variant actually named after the mood (the
+     *  waving hello-01/hello-03) over scenery extras (hang-01 branch, peek-*
+     *  doors) — those read badly as little tile icons, the owner called the
+     *  hello tile ugly for exactly this reason. */
+    fun previewFor(catalog: List<StickerVariant>, type: String, me: String?): StickerVariant? {
+        val allowed = allowedFor(catalog, type, me)
+        val named = allowed.filter { it.id.startsWith(type) }
+        return named.firstOrNull { charactersOf(it) == setOf(me) }
+            ?: named.firstOrNull()
+            ?: allowed.firstOrNull { charactersOf(it) == setOf(me) }
+            ?: allowed.firstOrNull()
+    }
+
     fun pickVariant(catalog: List<StickerVariant>, type: String, me: String?): StickerVariant? {
         val allowed = allowedFor(catalog, type, me)
         val solo = allowed.filter { charactersOf(it) == setOf(me) }
