@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.buduping.app.Emotion
@@ -17,7 +18,7 @@ import com.buduping.app.StickerVariant
 fun VariantPicker(emotion: Emotion, variants: List<StickerVariant>, favorite: Boolean,
                   onFavorite: () -> Unit, onDismiss: () -> Unit, onSend: (StickerVariant) -> Unit) {
     var selected by remember(emotion.type) { mutableStateOf(variants.firstOrNull()) }
-    AlertDialog(onDismissRequest = onDismiss, title = { Text(emotion.label) }, text = {
+    AlertDialog(modifier = Modifier.testTag("variantPicker"), onDismissRequest = onDismiss, title = { Text(emotion.label) }, text = {
         Column {
             StickerArt(selected, Modifier.fillMaxWidth().height(180.dp), emotion.label, animated = true)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(vertical = 12.dp)) {

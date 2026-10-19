@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -41,7 +42,7 @@ fun PairScreen(initialName: String, onPaired: (name: String, pairId: String) -> 
         value = withContext(Dispatchers.IO) { runCatching { StickerCatalog.load(context).firstOrNull { it.type == "hug" } }.getOrNull() }
     }
     fun connect() { if (valid && name.isNotBlank()) onPaired(name.trim(), code) }
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    Surface(Modifier.fillMaxSize().testTag("pairScreen"), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()
             .verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("BuduPing", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)

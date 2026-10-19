@@ -27,7 +27,13 @@ class HomeUiTest {
     private fun capture(name: String) {
         compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val screenshot = compose.onAllNodes(isRoot()).onLast().captureToImage().asAndroidBitmap()
+        val tag = when (name) {
+            "character-picker" -> "characterPicker"
+            "variant-picker" -> "variantPicker"
+            "setup-light" -> "pairScreen"
+            else -> "homeScreen"
+        }
+        val screenshot = compose.onNodeWithTag(tag, useUnmergedTree = true).captureToImage().asAndroidBitmap()
         // Public emulator media survives Gradle uninstalling the test target after the run.
         val resolver = instrumentation.targetContext.contentResolver
         val values = ContentValues().apply {
@@ -113,5 +119,10 @@ class HomeUiTest {
     }
 
     @Test fun darkHome() { show(true, 1f, 412); capture("home-dark-412") }
-    @Test fun narrowLargeText() { show(false, 1.3f, 320); capture("home-large-text-320") }
+    @Test fun narrowLargeText() {
+        show(false, 1.3f, 320)
+        compose.onNodeWithText("Bubu").assertIsDisplayed()
+        compose.onNodeWithText("Người thương · Chưa có mạng").assertIsDisplayed()
+        capture("home-large-text-320")
+    }
 }

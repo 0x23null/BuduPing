@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.buduping.app.CharacterKind
 import com.buduping.app.StickerVariant
@@ -36,7 +37,7 @@ fun characterName(kind: String?): String = when (kind) {
  */
 @Composable
 fun CharacterPicker(catalog: List<StickerVariant>, onPick: (String) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("Bạn là ai trong hai đứa?") }, text = {
+    AlertDialog(modifier = Modifier.testTag("characterPicker"), onDismissRequest = onDismiss, title = { Text("Bạn là ai trong hai đứa?") }, text = {
         Column {
             Text("Từ giờ sticker bạn gửi sẽ là của nhân vật bạn chọn.",
                 style = MaterialTheme.typography.bodyMedium,

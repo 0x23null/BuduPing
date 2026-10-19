@@ -51,3 +51,9 @@ Remaining device checks: audible rhythm/volume during rapid taps; mixed-DPI and 
 ### Native visual follow-up
 
 At d7dcafa, WPF publish, 558 core assertions, quiet-mode tests and 200-tap test passed. Native screenshots confirmed 109.8 / 65.88 DIP artwork, readable unscaled message text, removed close button and the startup notice. Visual review found that center-origin particle scaling displaced a large halo below the small card; use a zero origin for particle elements so size and position are scaled consistently. Revalidate matching native captures after this fix.
+
+### Android visual follow-up
+
+At d7dcafa, APK run [39188178441](https://github.com/0x23null/BuduPing/actions/runs/39188178441) and all six Android tests in [39188178366](https://github.com/0x23null/BuduPing/actions/runs/39188178366) passed. Inspecting the actual PNGs found header crowding after the character chip was added: the duplicated sender/status column wrapped vertically at 320 dp / 1.3 font scale. Remove that duplicate column; sender/status remain in the existing summary card. Capture explicit tagged screen/dialog surfaces rather than choosing the last Compose root, which could capture the background instead of the modal. These changes receive a fresh APK/UI run.
+
+First Windows comparison at d7dcafa (run [39188178342](https://github.com/0x23null/BuduPing/actions/runs/39188178342)): peak private 158.2 → 124.3 MiB; settled private 85.1 → 77.8 MiB; peak working set 234.0 → 201.0 MiB; settled working set 20.9 → 19.6 MiB. Idle CPU was 0.559% → 0.935% of one logical core. This single run supports lower memory in that workload, **not** a zero-idle-CPU claim or a device-independent improvement percentage. The follow-up particle-origin fix was visually confirmed in native captures from de3cd7e; its matching full benchmark is recorded separately.

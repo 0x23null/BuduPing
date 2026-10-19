@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -124,7 +125,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
 
     val ordered = remember(favorites) { EMOTIONS.sortedBy { e -> favorites.indexOf(e.type).let { if (it < 0) 100 else it } } }
     val summary = remember(funTick) { prefs.funToday().take(3) }
-    Scaffold(topBar = {
+    Scaffold(modifier = Modifier.testTag("homeScreen"), topBar = {
         TopAppBar(title = { Text("BuduPing", style = MaterialTheme.typography.headlineSmall) }, actions = {
             val connectionLabel = if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
             Box(Modifier.size(32.dp).semantics { contentDescription = connectionLabel }, contentAlignment = Alignment.Center) {
@@ -142,11 +143,6 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                             leadingIcon = { StickerArt(characterPreview(catalog, myCharacter), Modifier.size(24.dp), null) },
                             label = { Text(characterName(myCharacter)) })
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(prefs.senderName, style = MaterialTheme.typography.labelMedium)
-                        Text(if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ",
-                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
                 }
             }
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
@@ -158,7 +154,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                         val idleText = prefs.senderName + " · " +
                             if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
                         Text(if (comboCount > 0) "$label · Lv$level" else idleText,
-                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         if (comboCount > 0) Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
                     }
                     Spacer(Modifier.height(8.dp))

@@ -116,7 +116,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: BuduPing ${{ needs.version.outputs.tag }} — character stickers, lighter memory
+          name: BuduPing ${{ needs.version.outputs.tag }} — compact stickers, atata and startup feedback
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |
