@@ -13,8 +13,8 @@ android {
         applicationId = "com.buduping.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 25
-        versionName = "0.2.5"
+        versionCode = 26
+        versionName = "0.2.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["timeout_msec"] = "90000"
     }
