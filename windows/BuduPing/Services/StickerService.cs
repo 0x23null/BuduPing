@@ -186,15 +186,21 @@ public sealed class StickerService
     /// <summary>Nhả toàn bộ GIF đã decode (gọi sau khi overlay ẩn hẳn để trả RAM về idle).</summary>
     public void ReleaseDecoded()
     {
-        foreach (var d in _decoded.Values)
+        // MUST hold _sync: the background decode-then-swap path decodes under
+        // this lock, and disposing streams mid-decode crashes the process
+        // (this raced the 6s idle trim inside the CI ui-review run).
+        lock (_sync)
         {
-            try { d.Stream.Dispose(); } catch { }
+            foreach (var d in _decoded.Values)
+            {
+                try { d.Stream.Dispose(); } catch { }
+            }
+            _decoded.Clear();
+            _decodedOrder.Clear();
+            _pins.Clear();
+            _lastShownKey = "";
+            LastInfo = null;
         }
-        _decoded.Clear();
-        _decodedOrder.Clear();
-        _pins.Clear();
-        _lastShownKey = "";
-        LastInfo = null;
     }
 
     /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>

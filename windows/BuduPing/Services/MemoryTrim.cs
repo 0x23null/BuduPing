@@ -8,6 +8,9 @@ namespace BuduPing.Services;
 /// <summary>Opt-in local measurements, plus an idle trim the product owner explicitly asked for.</summary>
 public static class MemoryTrim
 {
+    /// <summary>Set by the --ui-review / --memory-review harnesses: synthetic
+    /// show/hide cycles must not trigger idle trims mid-measurement.</summary>
+    public static bool Disabled;
     [DllImport("psapi.dll")]
     private static extern bool EmptyWorkingSet(IntPtr hProcess);
 

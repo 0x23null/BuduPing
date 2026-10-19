@@ -219,7 +219,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.width(8.dp))
                         Box(Modifier.clip(RoundedCornerShape(50))
-                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd))))
+                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd)))
                             .padding(horizontal = 10.dp, vertical = 3.dp)) {
                             Text("x$shownComboCount", style = MaterialTheme.typography.labelLarge,
                                 fontFamily = BalooFamily, color = Color.White)

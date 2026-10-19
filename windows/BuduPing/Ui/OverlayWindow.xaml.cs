@@ -107,7 +107,7 @@ public partial class OverlayWindow : Window
         {
             _idleTimer.Stop();
             _idleTimer.Interval = TimeSpan.FromSeconds(20);
-            if (_isShowing) return;
+            if (_isShowing || MemoryTrim.Disabled) return;
             _stickers.ReleaseDecoded();
             MemoryTrim.TrimIdle(_stickers.DecodedBytes);
         };
