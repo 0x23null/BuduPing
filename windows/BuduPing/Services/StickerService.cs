@@ -33,11 +33,8 @@ public sealed class StickerService
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["hello"] = "Chào",
-            ["dance"] = "Nhảy",
             ["wow"] = "Wow",
             ["shy"] = "Ngại",
-            ["ok"] = "Ok nè",
-            ["proud"] = "Kiêu",
             ["sleepy"] = "Buồn ngủ",
             ["love"] = "Yêu",
             ["miss"] = "Nhớ",
@@ -62,11 +59,8 @@ public sealed class StickerService
         "love" or "kiss" => ParticleKind.HeartRise,
         "miss" => ParticleKind.HeartFall,
         "hello" => ParticleKind.Star,
-        "dance" => ParticleKind.Confetti,
         "wow" => ParticleKind.Star,
         "shy" => ParticleKind.Bubbles,
-        "ok" => ParticleKind.Star,
-        "proud" => ParticleKind.Confetti,
         "sleepy" => ParticleKind.Zzz,
         "hug" => ParticleKind.Ring,
         "angry" or "tease" or "jealous" => ParticleKind.Puff,
@@ -117,6 +111,7 @@ public sealed class StickerService
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
     private readonly Dictionary<string, int> _pins = new(StringComparer.Ordinal);
+    private readonly object _sync = new();
     private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
 
     public StickerService(string stickersRoot) => _root = stickersRoot;
@@ -232,11 +227,21 @@ public sealed class StickerService
 
     public void Pin(BitmapImage image)
     {
+        lock (_sync) { PinLocked(image); }
+    }
+
+    private void PinLocked(BitmapImage image)
+    {
         var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
         if (entry.Key != null) _pins[entry.Key] = _pins.GetValueOrDefault(entry.Key) + 1;
     }
 
     public void Unpin(BitmapImage image)
+    {
+        lock (_sync) { UnpinLocked(image); }
+    }
+
+    private void UnpinLocked(BitmapImage image)
     {
         var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
         if (entry.Key != null && _pins.TryGetValue(entry.Key, out int count))
@@ -272,6 +277,11 @@ public sealed class StickerService
 
     public string PickVariant(string type, string myCharacter = "")
     {
+        lock (_sync) { return PickVariantLocked(type, myCharacter); }
+    }
+
+    private string PickVariantLocked(string type, string myCharacter = "")
+    {
         if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0) return "";
         if (string.IsNullOrEmpty(myCharacter)) return list[_rng.Next(list.Count)].Variant;
         var solo = list.Where(x => CharactersOf(x.Variant) is { Count: 1 } c && c[0] == myCharacter).ToList();
@@ -287,6 +297,11 @@ public sealed class StickerService
     }
 
     public BitmapImage? GetRandom(string type, string variant = "", string character = "")
+    {
+        lock (_sync) { return GetRandomLocked(type, variant, character); }
+    }
+
+    private BitmapImage? GetRandomLocked(string type, string variant, string character)
     {
         if (!_byType.TryGetValue(type ?? "", out var sources)) return null;
         var list = sources.Where(x => string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character)).ToList();

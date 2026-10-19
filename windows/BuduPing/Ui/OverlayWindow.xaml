@@ -31,15 +31,18 @@
                     <StackPanel>
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <Border Width="22" Height="22" CornerRadius="11" Background="#46416B" HorizontalAlignment="Left">
+                            <Border x:Name="BubbleHeartChip" Width="22" Height="22" CornerRadius="11" Background="#46416B" HorizontalAlignment="Left">
                                 <Path Data="M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z" Fill="#FF9EC2" Stretch="Uniform" Width="12" Height="11"/>
                             </Border>
+                            <Image x:Name="BubbleAvatar" Width="22" Height="22" Visibility="Collapsed" Stretch="UniformToFill" HorizontalAlignment="Left">
+                                <Image.Clip><EllipseGeometry Center="11,11" RadiusX="11" RadiusY="11"/></Image.Clip>
+                            </Image>
                             <TextBlock x:Name="BubbleFrom" Grid.Column="1" FontSize="13" FontWeight="SemiBold" FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2"
                                 Foreground="#FFD9E6" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0" MaxWidth="170"/>
                             <TextBlock x:Name="BubbleEmotion" Grid.Column="2" FontSize="11" Foreground="#C9C3E6" VerticalAlignment="Center"/>
                         </Grid>
                         <TextBlock x:Name="BubbleText" FontSize="19" LineHeight="28" Foreground="#FFFFFF"
-                                   FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2" TextWrapping="Wrap"/>
+                                   FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2, Segoe UI Emoji, Segoe UI" TextWrapping="Wrap"/>
                     </StackPanel>
                 </Border>
                 <Path x:Name="BubbleTail" Data="M0,0 L18,0 L9,13 Z" Fill="#F22E2B3A"

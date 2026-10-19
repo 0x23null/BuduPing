@@ -152,23 +152,23 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     }
                 }
             }
+            if (comboCount > 0) {
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 Column(Modifier.padding(14.dp, 12.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         val label = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
                         val level = if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
-                        val idleText = prefs.senderName + " · " +
-                            if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
-                        Text(if (comboCount > 0) "$label · Lv$level" else idleText,
+                        Text("$label · Lv$level",
                             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        if (comboCount > 0) Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
+                        Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
                     }
                     Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(progress = { comboProgress }, modifier = Modifier.fillMaxWidth().height(5.dp),
                         trackColor = MaterialTheme.colorScheme.primaryContainer)
                 }
+            }
             }
             LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),

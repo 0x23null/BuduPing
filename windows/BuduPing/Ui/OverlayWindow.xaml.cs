@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 using WpfAnimatedGif;
 using BuduPing.Core;
 using BuduPing.Services;
@@ -233,25 +234,54 @@ public partial class OverlayWindow : Window
 
     private void Display(PingEvent ping, bool peek = false)
     {
+        // Mood switch while the buddy is already on screen: decode the new GIF
+        // on a background thread and swap it in with a soft bounce — replaying
+        // the full entrance (and blocking the UI thread on a cold decode) made
+        // spam-switching feel like a notification re-posting, with a hitch.
+        bool switching = _isShowing && !_isHiding && !_peeking && !peek
+            && Visibility == Visibility.Visible
+            && !string.IsNullOrEmpty(_activeType)
+            && !string.Equals(_activeType, ping.Type, StringComparison.OrdinalIgnoreCase);
         _generation++;
-        var displayWatch = Stopwatch.StartNew();
         _idleTimer.Stop();
+        if (switching)
+        {
+            int generation = _generation;
+            Task.Run(() =>
+            {
+                var loaded = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (generation != _generation) { _app.CompletePing(ping, "superseded"); return; }
+                    if (loaded == null) { _app.CompletePing(ping, "unavailable"); return; }
+                    ApplyDisplay(ping, peek, loaded, switching: true);
+                });
+            });
+            return;
+        }
+        var bmp0 = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
+        if (bmp0 == null)
+        {
+            _isShowing = false;
+            _app.CompletePing(ping, "unavailable");
+            return;
+        }
+        ApplyDisplay(ping, peek, bmp0, switching: false);
+    }
+
+    private void ApplyDisplay(PingEvent ping, bool peek, BitmapImage bmp, bool switching)
+    {
+        var displayWatch = Stopwatch.StartNew();
         _current = ping;
         _peeking = peek;
         _isShowing = true; _isHiding = false;
         _activeType = ping.Type; _activeCount = 1; _lv3Done = false;
         _windowStartUtc = DateTime.UtcNow; _lastTapUtc = _windowStartUtc;
         ClearParticles();
-        var bmp = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
-        if (bmp == null)
-        {
-            _isShowing = false;
-            _app.CompletePing(ping, "unavailable");
-            return;
-        }
         SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
         BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
+        UpdateBubbleAvatar(ping.Character);
         BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
         bool hiddenText = _app.Config.HideMessageText && text.Length > 0;
@@ -283,6 +313,11 @@ public partial class OverlayWindow : Window
             ApplyEdgeChrome();
             DisplayPlacement.PlacePeekRight(this, _app.Config.MonitorDevice);
             PlayEdgeEntrance();
+        }
+        else if (switching)
+        {
+            RestoreEdgeChrome();
+            PlaySwapBounce();
         }
         else
         {
@@ -538,6 +573,48 @@ public partial class OverlayWindow : Window
                     { BeginTime = TimeSpan.FromMilliseconds(100), EasingFunction = new BackEase { Amplitude = 1.4, EasingMode = EasingMode.EaseOut } };
                 BubbleScale.BeginAnimation(property, bubble);
             }
+        }
+    }
+
+    /// <summary>Soft in-place reaction when the mood changes mid-display:
+    /// a quick dip of the whole panel; the sticker swap lands inside the dip.</summary>
+    private void PlaySwapBounce()
+    {
+        if (_app.Config.ReducedMotion) return;
+        var ease = new SineEase { EasingMode = EasingMode.EaseInOut };
+        foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+        {
+            var anim = new DoubleAnimationUsingKeyFrames();
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            anim.KeyFrames.Add(new EasingDoubleKeyFrame(0.86, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110)), ease));
+            anim.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(280)), ease));
+            ContentScale.BeginAnimation(property, anim);
+        }
+    }
+
+    private BitmapImage? _avatarBubu;
+    private BitmapImage? _avatarDudu;
+
+    /// <summary>The bubble header shows the sender's own character (first frame
+    /// of their hello sticker) instead of a generic heart when we know who sent it.</summary>
+    private void UpdateBubbleAvatar(string character)
+    {
+        BitmapImage? avatar = character switch
+        {
+            "bubu" => _avatarBubu ??= _stickers.GetRandom("hello", "hello-01", "bubu"),
+            "dudu" => _avatarDudu ??= _stickers.GetRandom("hello", "hello-03", "dudu"),
+            _ => null,
+        };
+        if (avatar != null)
+        {
+            BubbleAvatar.Source = avatar;
+            BubbleAvatar.Visibility = Visibility.Visible;
+            BubbleHeartChip.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            BubbleAvatar.Visibility = Visibility.Collapsed;
+            BubbleHeartChip.Visibility = Visibility.Visible;
         }
     }
 
