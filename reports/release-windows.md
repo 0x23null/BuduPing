@@ -1,6 +1,6 @@
 # CI report: release-windows
 - status: success
 - workflow: Release (BuduPing)
-- run: 39298929151/19
-- sha: ee944460e3e5f63d71ab92b2f500dbaea302bb0f
-- time: 2026-10-19T18:02:38Z
+- run: 39309984741/20
+- sha: 5090d88dc2f55aa9d41b325bf9f6810e1bc0126b
+- time: 2026-10-19T19:21:02Z
