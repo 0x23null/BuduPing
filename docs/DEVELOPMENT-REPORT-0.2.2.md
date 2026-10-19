@@ -81,4 +81,15 @@ Across runs, peak memory is comparable or lower; one peak-private result is +1.7
 - Asset corner audit: 27 packaged GIFs, **292 frames**, every frame's four corners transparent. This does not prove edge/halo quality. The revised [STICKER-TEST-PLAN.md](STICKER-TEST-PLAN.md) distinguishes baked asset backgrounds from the intentional native bright card, corrects role names/retired love-01, and covers physical-speaker spam, quiet mode and startup/relaunch.
 - Native Windows PNG/JSON and memory evidence: [ci-reports/reports/ui-windows](https://github.com/0x23null/BuduPing/tree/ci-reports/reports/ui-windows). Android PNGs: artifact on the linked matching UI run.
 
-The documentation-only final commit skips redundant branch CI. Product code matches the validated commits above; merge/release still performs both platform builds and publishes APK + EXE together. Publication result will be recorded after the release job completes.
+The documentation-only final commit skips redundant branch CI. Product code matches the validated commits above; merge/release still performs both platform builds and publishes APK + EXE together. Publication result is recorded below.
+
+## Published
+
+[PR #2](https://github.com/0x23null/BuduPing/pull/2) merged as `35da72f47912bbb764f843d98391f3f08d2a815e`. [Release workflow 39189895840](https://github.com/0x23null/BuduPing/actions/runs/39189895840) completed successfully: version, APK, Windows and publish jobs all passed. [v0.2.2](https://github.com/0x23null/BuduPing/releases/tag/v0.2.2) is a prerelease with both files uploaded from that exact merge commit. The older draft PR #1 was also marked merged automatically because its history is included.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| BuduPing.apk | 20176416 | `c52b1a53e8bbe2dc24b570ccda9e59588db7574419433ae26f6462ce8b6c1ff5` |
+| BuduPing.exe | 170814896 | `a3be67a72f06f59e6bfcaa25d33bf15b593a76329bac325fdabdaf353eea48bf` |
+
+The final main documentation commit only records this publication; application code remains the validated release source. Debug APK signatures can differ between runners; if Android refuses an in-place update, uninstalling/re-pairing may be necessary. Close the previous portable EXE before starting the new version. Physical-speaker listening, actual-device RAM/latency, mixed-DPI, autostart/relaunch and real Firebase round trips remain the explicit device checklist above.
