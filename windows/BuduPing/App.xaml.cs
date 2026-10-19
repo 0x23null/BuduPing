@@ -114,6 +114,9 @@ public partial class App : Application
                 _settings.UpdateLayout();
                 SaveWindow("settings-options.png");
                 _settings.Hide();
+                if (_stickers.HasForCharacter("sad", "dudu") || !_stickers.HasForCharacter("love", "dudu") ||
+                    !_stickers.HasForCharacter("sad", "bubu"))
+                    throw new InvalidOperationException("Native character catalog mapping is incorrect.");
                 _overlay = new OverlayWindow(_stickers, this);
                 _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương",
                     Text = "Một cái ôm gửi đến bạn. Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
@@ -394,9 +397,9 @@ public partial class App : Application
 
     public void SendTestPing()
     {
-        string[] types = _stickers?.KnownTypes.Count > 0
-            ? _stickers.KnownTypes.ToArray()
-            : new[] { "love", "miss", "hug", "angry", "cheer", "funny" };
+        string[] types = _stickers?.KnownTypes.Where(type => _stickers.HasForCharacter(type, Config.MyCharacter)).ToArray()
+            ?? Array.Empty<string>();
+        if (types.Length == 0) return;
         var ping = new PingEvent
         {
             IsLocal = true,

@@ -252,6 +252,10 @@ public sealed class StickerService
     /// Chọn tên biến thể theo nhân vật của người gửi: ưu tiên sticker CHỈ có nhân vật của mình,
     /// rồi tới sticker có cả hai; không bao giờ chọn sticker solo của nhân vật còn lại.
     /// </summary>
+    public bool HasForCharacter(string type, string character)
+        => _byType.TryGetValue(type, out var list) && list.Any(x =>
+            string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character));
+
     public string PickVariant(string type, string myCharacter = "")
     {
         if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0) return "";
