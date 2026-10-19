@@ -2,798 +2,798 @@
   "kind": "offline-memory-review",
   "runtime": ".NET 8.0.32",
   "os": "Microsoft Windows 10.0.26100",
-  "at": "2026-10-19T14:07:43.9692103+00:00",
-  "peakPrivateBytes": 165265408,
-  "peakWorkingSet": 248041472,
-  "settledPrivateBytes": 105025536,
-  "settledWorkingSet": 9191424,
-  "idleCpuMs": 140.625,
-  "idleWallMs": 25046.6194,
-  "idleOneCorePercent": 0.5614530046826797,
+  "at": "2026-10-19T14:30:32.4991202+00:00",
+  "peakPrivateBytes": 142864384,
+  "peakWorkingSet": 223907840,
+  "settledPrivateBytes": 107053056,
+  "settledWorkingSet": 13467648,
+  "idleCpuMs": 109.375,
+  "idleWallMs": 25008.2891,
+  "idleOneCorePercent": 0.43735497658860306,
   "samples": [
     {
       "Phase": "startup",
-      "AtMs": 210,
-      "PrivateBytes": 43769856,
-      "WorkingSet": 103346176,
-      "ManagedBytes": 27528496
+      "AtMs": 273,
+      "PrivateBytes": 40976384,
+      "WorkingSet": 99041280,
+      "ManagedBytes": 25083064
     },
     {
       "Phase": "startup",
-      "AtMs": 722,
-      "PrivateBytes": 43540480,
-      "WorkingSet": 103583744,
-      "ManagedBytes": 27553088
+      "AtMs": 782,
+      "PrivateBytes": 40669184,
+      "WorkingSet": 99201024,
+      "ManagedBytes": 25099480
     },
     {
       "Phase": "startup",
-      "AtMs": 1210,
-      "PrivateBytes": 43552768,
-      "WorkingSet": 103645184,
-      "ManagedBytes": 27553088
+      "AtMs": 1287,
+      "PrivateBytes": 40681472,
+      "WorkingSet": 99250176,
+      "ManagedBytes": 25099480
     },
     {
       "Phase": "startup",
-      "AtMs": 1715,
-      "PrivateBytes": 43692032,
-      "WorkingSet": 103825408,
-      "ManagedBytes": 27569536
+      "AtMs": 1776,
+      "PrivateBytes": 40681472,
+      "WorkingSet": 99266560,
+      "ManagedBytes": 25107448
     },
     {
       "Phase": "moods",
-      "AtMs": 2222,
-      "PrivateBytes": 90271744,
-      "WorkingSet": 164728832,
-      "ManagedBytes": 15319712
+      "AtMs": 2275,
+      "PrivateBytes": 87076864,
+      "WorkingSet": 159592448,
+      "ManagedBytes": 13893976
     },
     {
       "Phase": "moods",
-      "AtMs": 2725,
-      "PrivateBytes": 90886144,
-      "WorkingSet": 167473152,
-      "ManagedBytes": 15439352
+      "AtMs": 2788,
+      "PrivateBytes": 89194496,
+      "WorkingSet": 163491840,
+      "ManagedBytes": 14007752
     },
     {
       "Phase": "moods",
-      "AtMs": 3233,
-      "PrivateBytes": 98578432,
-      "WorkingSet": 175149056,
-      "ManagedBytes": 15518384
+      "AtMs": 3298,
+      "PrivateBytes": 99426304,
+      "WorkingSet": 174546944,
+      "ManagedBytes": 14089992
     },
     {
       "Phase": "moods",
-      "AtMs": 3736,
-      "PrivateBytes": 98430976,
-      "WorkingSet": 174837760,
-      "ManagedBytes": 15592400
+      "AtMs": 3805,
+      "PrivateBytes": 99282944,
+      "WorkingSet": 174407680,
+      "ManagedBytes": 14164008
     },
     {
       "Phase": "moods",
-      "AtMs": 4224,
-      "PrivateBytes": 99049472,
-      "WorkingSet": 176173056,
-      "ManagedBytes": 15657976
+      "AtMs": 4324,
+      "PrivateBytes": 99864576,
+      "WorkingSet": 175599616,
+      "ManagedBytes": 14245592
     },
     {
       "Phase": "moods",
-      "AtMs": 4725,
-      "PrivateBytes": 99344384,
-      "WorkingSet": 176513024,
-      "ManagedBytes": 15707320
+      "AtMs": 4822,
+      "PrivateBytes": 100220928,
+      "WorkingSet": 176132096,
+      "ManagedBytes": 14303160
     },
     {
       "Phase": "moods",
-      "AtMs": 4997,
-      "PrivateBytes": 98144256,
-      "WorkingSet": 176046080,
-      "ManagedBytes": 15756552
+      "AtMs": 5124,
+      "PrivateBytes": 100343808,
+      "WorkingSet": 176312320,
+      "ManagedBytes": 14358088
     },
     {
       "Phase": "moods",
-      "AtMs": 5225,
-      "PrivateBytes": 128311296,
-      "WorkingSet": 205545472,
-      "ManagedBytes": 15415128
+      "AtMs": 5375,
+      "PrivateBytes": 127922176,
+      "WorkingSet": 204304384,
+      "ManagedBytes": 14367104
     },
     {
       "Phase": "moods",
-      "AtMs": 5725,
-      "PrivateBytes": 134713344,
-      "WorkingSet": 212234240,
-      "ManagedBytes": 15528592
+      "AtMs": 5879,
+      "PrivateBytes": 131362816,
+      "WorkingSet": 207560704,
+      "ManagedBytes": 14462440
     },
     {
       "Phase": "moods",
-      "AtMs": 6232,
-      "PrivateBytes": 134524928,
-      "WorkingSet": 211628032,
-      "ManagedBytes": 15615632
+      "AtMs": 6374,
+      "PrivateBytes": 131358720,
+      "WorkingSet": 207618048,
+      "ManagedBytes": 14547880
     },
     {
       "Phase": "moods",
-      "AtMs": 6724,
-      "PrivateBytes": 134565888,
-      "WorkingSet": 211861504,
-      "ManagedBytes": 15688192
+      "AtMs": 6871,
+      "PrivateBytes": 131371008,
+      "WorkingSet": 207699968,
+      "ManagedBytes": 14622136
     },
     {
       "Phase": "moods",
-      "AtMs": 7225,
-      "PrivateBytes": 135041024,
-      "WorkingSet": 212480000,
-      "ManagedBytes": 15763672
+      "AtMs": 7371,
+      "PrivateBytes": 131518464,
+      "WorkingSet": 207872000,
+      "ManagedBytes": 14699504
     },
     {
       "Phase": "moods",
-      "AtMs": 7732,
-      "PrivateBytes": 135434240,
-      "WorkingSet": 212783104,
-      "ManagedBytes": 15822224
+      "AtMs": 7901,
+      "PrivateBytes": 131518464,
+      "WorkingSet": 207986688,
+      "ManagedBytes": 14751008
     },
     {
       "Phase": "moods",
-      "AtMs": 8301,
-      "PrivateBytes": 135847936,
-      "WorkingSet": 213344256,
-      "ManagedBytes": 15897160
+      "AtMs": 8639,
+      "PrivateBytes": 129314816,
+      "WorkingSet": 205266944,
+      "ManagedBytes": 14840896
     },
     {
       "Phase": "moods",
-      "AtMs": 8416,
-      "PrivateBytes": 135847936,
-      "WorkingSet": 213368832,
-      "ManagedBytes": 15921368
+      "AtMs": 8640,
+      "PrivateBytes": 129314816,
+      "WorkingSet": 205266944,
+      "ManagedBytes": 14849120
     },
     {
       "Phase": "moods",
-      "AtMs": 8801,
-      "PrivateBytes": 142520320,
-      "WorkingSet": 222597120,
-      "ManagedBytes": 16453904
+      "AtMs": 9138,
+      "PrivateBytes": 134488064,
+      "WorkingSet": 213749760,
+      "ManagedBytes": 14407568
     },
     {
       "Phase": "moods",
-      "AtMs": 9302,
-      "PrivateBytes": 142991360,
-      "WorkingSet": 224886784,
-      "ManagedBytes": 16563720
+      "AtMs": 9647,
+      "PrivateBytes": 134946816,
+      "WorkingSet": 215674880,
+      "ManagedBytes": 14521664
     },
     {
       "Phase": "moods",
-      "AtMs": 9804,
-      "PrivateBytes": 143138816,
-      "WorkingSet": 224985088,
-      "ManagedBytes": 16653376
+      "AtMs": 10140,
+      "PrivateBytes": 134873088,
+      "WorkingSet": 215281664,
+      "ManagedBytes": 14614376
     },
     {
       "Phase": "moods",
-      "AtMs": 10305,
-      "PrivateBytes": 143122432,
-      "WorkingSet": 224935936,
-      "ManagedBytes": 16727392
+      "AtMs": 10636,
+      "PrivateBytes": 134893568,
+      "WorkingSet": 215355392,
+      "ManagedBytes": 14679592
     },
     {
       "Phase": "moods",
-      "AtMs": 10816,
-      "PrivateBytes": 143089664,
-      "WorkingSet": 224907264,
-      "ManagedBytes": 16790768
+      "AtMs": 11213,
+      "PrivateBytes": 134893568,
+      "WorkingSet": 215379968,
+      "ManagedBytes": 14746536
     },
     {
       "Phase": "moods",
-      "AtMs": 11413,
-      "PrivateBytes": 143089664,
-      "WorkingSet": 224911360,
-      "ManagedBytes": 16864784
+      "AtMs": 11714,
+      "PrivateBytes": 135307264,
+      "WorkingSet": 215691264,
+      "ManagedBytes": 14812328
     },
     {
       "Phase": "moods",
-      "AtMs": 11807,
-      "PrivateBytes": 138477568,
-      "WorkingSet": 220794880,
-      "ManagedBytes": 16921168
+      "AtMs": 12078,
+      "PrivateBytes": 136167424,
+      "WorkingSet": 216756224,
+      "ManagedBytes": 14869504
     },
     {
       "Phase": "moods",
-      "AtMs": 11995,
-      "PrivateBytes": 130207744,
-      "WorkingSet": 212754432,
-      "ManagedBytes": 16117040
+      "AtMs": 12218,
+      "PrivateBytes": 124833792,
+      "WorkingSet": 205168640,
+      "ManagedBytes": 13984536
     },
     {
       "Phase": "moods",
-      "AtMs": 12494,
-      "PrivateBytes": 131452928,
-      "WorkingSet": 214024192,
-      "ManagedBytes": 16247688
+      "AtMs": 12717,
+      "PrivateBytes": 123613184,
+      "WorkingSet": 204537856,
+      "ManagedBytes": 14096496
     },
     {
       "Phase": "moods",
-      "AtMs": 12991,
-      "PrivateBytes": 131710976,
-      "WorkingSet": 214282240,
-      "ManagedBytes": 16348128
+      "AtMs": 13213,
+      "PrivateBytes": 123789312,
+      "WorkingSet": 204443648,
+      "ManagedBytes": 14179848
     },
     {
       "Phase": "moods",
-      "AtMs": 13491,
-      "PrivateBytes": 131751936,
-      "WorkingSet": 214388736,
-      "ManagedBytes": 16423040
+      "AtMs": 13713,
+      "PrivateBytes": 123138048,
+      "WorkingSet": 204165120,
+      "ManagedBytes": 14269416
     },
     {
       "Phase": "moods",
-      "AtMs": 13992,
-      "PrivateBytes": 132685824,
-      "WorkingSet": 214749184,
-      "ManagedBytes": 16480720
+      "AtMs": 14221,
+      "PrivateBytes": 122957824,
+      "WorkingSet": 203964416,
+      "ManagedBytes": 14328072
     },
     {
       "Phase": "moods",
-      "AtMs": 14489,
-      "PrivateBytes": 132677632,
-      "WorkingSet": 214843392,
-      "ManagedBytes": 16536760
+      "AtMs": 14716,
+      "PrivateBytes": 122740736,
+      "WorkingSet": 203853824,
+      "ManagedBytes": 14385080
     },
     {
       "Phase": "moods",
-      "AtMs": 15002,
-      "PrivateBytes": 132956160,
-      "WorkingSet": 214818816,
-      "ManagedBytes": 16604160
+      "AtMs": 15626,
+      "PrivateBytes": 123084800,
+      "WorkingSet": 204242944,
+      "ManagedBytes": 14504408
     },
     {
       "Phase": "moods",
-      "AtMs": 15125,
-      "PrivateBytes": 132886528,
-      "WorkingSet": 215023616,
-      "ManagedBytes": 16623224
+      "AtMs": 15666,
+      "PrivateBytes": 123084800,
+      "WorkingSet": 204242944,
+      "ManagedBytes": 14512632
     },
     {
       "Phase": "moods",
-      "AtMs": 15495,
-      "PrivateBytes": 108765184,
-      "WorkingSet": 191401984,
-      "ManagedBytes": 15934072
+      "AtMs": 16123,
+      "PrivateBytes": 109322240,
+      "WorkingSet": 190746624,
+      "ManagedBytes": 13886104
     },
     {
       "Phase": "moods",
-      "AtMs": 16001,
-      "PrivateBytes": 109121536,
-      "WorkingSet": 191430656,
-      "ManagedBytes": 16035264
+      "AtMs": 16620,
+      "PrivateBytes": 108601344,
+      "WorkingSet": 190046208,
+      "ManagedBytes": 13984840
     },
     {
       "Phase": "moods",
-      "AtMs": 16490,
-      "PrivateBytes": 107732992,
-      "WorkingSet": 190754816,
-      "ManagedBytes": 16109400
+      "AtMs": 17122,
+      "PrivateBytes": 113221632,
+      "WorkingSet": 193667072,
+      "ManagedBytes": 14043856
     },
     {
       "Phase": "moods",
-      "AtMs": 16995,
-      "PrivateBytes": 108941312,
-      "WorkingSet": 191197184,
-      "ManagedBytes": 16169008
+      "AtMs": 17628,
+      "PrivateBytes": 111632384,
+      "WorkingSet": 191770624,
+      "ManagedBytes": 14103472
     },
     {
       "Phase": "moods",
-      "AtMs": 17492,
-      "PrivateBytes": 108851200,
-      "WorkingSet": 191385600,
-      "ManagedBytes": 16229312
+      "AtMs": 18125,
+      "PrivateBytes": 111865856,
+      "WorkingSet": 192266240,
+      "ManagedBytes": 14163560
     },
     {
       "Phase": "moods",
-      "AtMs": 17993,
-      "PrivateBytes": 108875776,
-      "WorkingSet": 191315968,
-      "ManagedBytes": 16289816
+      "AtMs": 18632,
+      "PrivateBytes": 111632384,
+      "WorkingSet": 192180224,
+      "ManagedBytes": 14224104
     },
     {
       "Phase": "moods",
-      "AtMs": 18416,
-      "PrivateBytes": 107757568,
-      "WorkingSet": 190332928,
-      "ManagedBytes": 16353320
+      "AtMs": 18978,
+      "PrivateBytes": 109920256,
+      "WorkingSet": 190423040,
+      "ManagedBytes": 14271016
     },
     {
       "Phase": "moods",
-      "AtMs": 18558,
-      "PrivateBytes": 108048384,
-      "WorkingSet": 191160320,
-      "ManagedBytes": 15283496
+      "AtMs": 19135,
+      "PrivateBytes": 103882752,
+      "WorkingSet": 185196544,
+      "ManagedBytes": 13908072
     },
     {
       "Phase": "moods",
-      "AtMs": 19053,
-      "PrivateBytes": 110194688,
-      "WorkingSet": 193650688,
-      "ManagedBytes": 15431464
+      "AtMs": 19634,
+      "PrivateBytes": 106831872,
+      "WorkingSet": 187801600,
+      "ManagedBytes": 14046128
     },
     {
       "Phase": "moods",
-      "AtMs": 19556,
-      "PrivateBytes": 109895680,
-      "WorkingSet": 193392640,
-      "ManagedBytes": 15538376
+      "AtMs": 20134,
+      "PrivateBytes": 106663936,
+      "WorkingSet": 187842560,
+      "ManagedBytes": 14158728
     },
     {
       "Phase": "moods",
-      "AtMs": 20057,
-      "PrivateBytes": 109858816,
-      "WorkingSet": 193441792,
-      "ManagedBytes": 15645288
+      "AtMs": 20646,
+      "PrivateBytes": 106250240,
+      "WorkingSet": 187101184,
+      "ManagedBytes": 14266400
     },
     {
       "Phase": "moods",
-      "AtMs": 20600,
-      "PrivateBytes": 109793280,
-      "WorkingSet": 193413120,
-      "ManagedBytes": 15719304
+      "AtMs": 21171,
+      "PrivateBytes": 106213376,
+      "WorkingSet": 187621376,
+      "ManagedBytes": 14328256
     },
     {
       "Phase": "moods",
-      "AtMs": 21168,
-      "PrivateBytes": 109674496,
-      "WorkingSet": 193470464,
-      "ManagedBytes": 15793320
+      "AtMs": 21716,
+      "PrivateBytes": 106229760,
+      "WorkingSet": 187666432,
+      "ManagedBytes": 14387656
     },
     {
       "Phase": "moods",
-      "AtMs": 21662,
-      "PrivateBytes": 109584384,
-      "WorkingSet": 193470464,
-      "ManagedBytes": 15859112
+      "AtMs": 22337,
+      "PrivateBytes": 106029056,
+      "WorkingSet": 187564032,
+      "ManagedBytes": 14480216
     },
     {
       "Phase": "moods",
-      "AtMs": 21728,
-      "PrivateBytes": 109584384,
-      "WorkingSet": 193474560,
-      "ManagedBytes": 15875504
+      "AtMs": 22338,
+      "PrivateBytes": 106029056,
+      "WorkingSet": 187564032,
+      "ManagedBytes": 14480216
     },
     {
       "Phase": "moods",
-      "AtMs": 22161,
-      "PrivateBytes": 125779968,
-      "WorkingSet": 208871424,
-      "ManagedBytes": 15434880
+      "AtMs": 22837,
+      "PrivateBytes": 123928576,
+      "WorkingSet": 205119488,
+      "ManagedBytes": 14052968
     },
     {
       "Phase": "moods",
-      "AtMs": 22660,
-      "PrivateBytes": 124981248,
-      "WorkingSet": 208666624,
-      "ManagedBytes": 15523784
+      "AtMs": 23339,
+      "PrivateBytes": 123285504,
+      "WorkingSet": 204570624,
+      "ManagedBytes": 14160000
     },
     {
       "Phase": "moods",
-      "AtMs": 23160,
-      "PrivateBytes": 127348736,
-      "WorkingSet": 210427904,
-      "ManagedBytes": 15616792
+      "AtMs": 23848,
+      "PrivateBytes": 123338752,
+      "WorkingSet": 204656640,
+      "ManagedBytes": 14245144
     },
     {
       "Phase": "moods",
-      "AtMs": 23683,
-      "PrivateBytes": 127414272,
-      "WorkingSet": 210378752,
-      "ManagedBytes": 15695480
+      "AtMs": 24338,
+      "PrivateBytes": 122806272,
+      "WorkingSet": 204193792,
+      "ManagedBytes": 14306864
     },
     {
       "Phase": "moods",
-      "AtMs": 24185,
-      "PrivateBytes": 127426560,
-      "WorkingSet": 210378752,
-      "ManagedBytes": 15754496
+      "AtMs": 24841,
+      "PrivateBytes": 122421248,
+      "WorkingSet": 203530240,
+      "ManagedBytes": 14361936
     },
     {
       "Phase": "moods",
-      "AtMs": 24726,
-      "PrivateBytes": 126709760,
-      "WorkingSet": 209719296,
-      "ManagedBytes": 15828792
+      "AtMs": 25371,
+      "PrivateBytes": 122605568,
+      "WorkingSet": 203976704,
+      "ManagedBytes": 14428688
     },
     {
       "Phase": "moods",
-      "AtMs": 25093,
-      "PrivateBytes": 124542976,
-      "WorkingSet": 208265216,
-      "ManagedBytes": 15878104
+      "AtMs": 25735,
+      "PrivateBytes": 123097088,
+      "WorkingSet": 204132352,
+      "ManagedBytes": 14476960
     },
     {
       "Phase": "moods",
-      "AtMs": 25304,
-      "PrivateBytes": 138514432,
-      "WorkingSet": 222289920,
-      "ManagedBytes": 15523624
+      "AtMs": 25967,
+      "PrivateBytes": 134418432,
+      "WorkingSet": 216322048,
+      "ManagedBytes": 14305088
     },
     {
       "Phase": "moods",
-      "AtMs": 25806,
-      "PrivateBytes": 141021184,
-      "WorkingSet": 224112640,
-      "ManagedBytes": 15623640
+      "AtMs": 26464,
+      "PrivateBytes": 137129984,
+      "WorkingSet": 217440256,
+      "ManagedBytes": 14411208
     },
     {
       "Phase": "moods",
-      "AtMs": 26303,
-      "PrivateBytes": 140091392,
-      "WorkingSet": 222785536,
-      "ManagedBytes": 15717224
+      "AtMs": 26969,
+      "PrivateBytes": 136146944,
+      "WorkingSet": 217427968,
+      "ManagedBytes": 14493032
     },
     {
       "Phase": "moods",
-      "AtMs": 26805,
-      "PrivateBytes": 140296192,
-      "WorkingSet": 223444992,
-      "ManagedBytes": 15785656
+      "AtMs": 27463,
+      "PrivateBytes": 136351744,
+      "WorkingSet": 217522176,
+      "ManagedBytes": 14576016
     },
     {
       "Phase": "moods",
-      "AtMs": 27308,
-      "PrivateBytes": 140386304,
-      "WorkingSet": 223305728,
-      "ManagedBytes": 15854248
+      "AtMs": 27971,
+      "PrivateBytes": 136507392,
+      "WorkingSet": 217772032,
+      "ManagedBytes": 14647920
     },
     {
       "Phase": "moods",
-      "AtMs": 27818,
-      "PrivateBytes": 141340672,
-      "WorkingSet": 224428032,
-      "ManagedBytes": 15918880
+      "AtMs": 28497,
+      "PrivateBytes": 136966144,
+      "WorkingSet": 218058752,
+      "ManagedBytes": 14715960
     },
     {
       "Phase": "moods",
-      "AtMs": 28402,
-      "PrivateBytes": 141611008,
-      "WorkingSet": 224731136,
-      "ManagedBytes": 15981088
+      "AtMs": 29026,
+      "PrivateBytes": 137482240,
+      "WorkingSet": 218791936,
+      "ManagedBytes": 14782120
     },
     {
       "Phase": "moods",
-      "AtMs": 28495,
-      "PrivateBytes": 141611008,
-      "WorkingSet": 224739328,
-      "ManagedBytes": 15995616
+      "AtMs": 29166,
+      "PrivateBytes": 134799360,
+      "WorkingSet": 216432640,
+      "ManagedBytes": 14805728
     },
     {
       "Phase": "moods",
-      "AtMs": 28901,
-      "PrivateBytes": 163790848,
-      "WorkingSet": 246702080,
-      "ManagedBytes": 15851168
+      "AtMs": 29535,
+      "PrivateBytes": 140337152,
+      "WorkingSet": 222109696,
+      "ManagedBytes": 14281480
     },
     {
       "Phase": "moods",
-      "AtMs": 29398,
-      "PrivateBytes": 164438016,
-      "WorkingSet": 247603200,
-      "ManagedBytes": 15961400
+      "AtMs": 30037,
+      "PrivateBytes": 141983744,
+      "WorkingSet": 223907840,
+      "ManagedBytes": 14388392
     },
     {
       "Phase": "moods",
-      "AtMs": 29903,
-      "PrivateBytes": 164700160,
-      "WorkingSet": 247631872,
-      "ManagedBytes": 16044080
+      "AtMs": 30528,
+      "PrivateBytes": 141426688,
+      "WorkingSet": 223367168,
+      "ManagedBytes": 14470632
     },
     {
       "Phase": "moods",
-      "AtMs": 30396,
-      "PrivateBytes": 164810752,
-      "WorkingSet": 247582720,
-      "ManagedBytes": 16122992
+      "AtMs": 31035,
+      "PrivateBytes": 142299136,
+      "WorkingSet": 223092736,
+      "ManagedBytes": 14552872
     },
     {
       "Phase": "moods",
-      "AtMs": 31040,
-      "PrivateBytes": 164810752,
-      "WorkingSet": 247590912,
-      "ManagedBytes": 16209136
+      "AtMs": 31526,
+      "PrivateBytes": 142315520,
+      "WorkingSet": 223293440,
+      "ManagedBytes": 14618664
     },
     {
       "Phase": "moods",
-      "AtMs": 31536,
-      "PrivateBytes": 164827136,
-      "WorkingSet": 247607296,
-      "ManagedBytes": 16270392
+      "AtMs": 32024,
+      "PrivateBytes": 142323712,
+      "WorkingSet": 223293440,
+      "ManagedBytes": 14676232
     },
     {
       "Phase": "moods",
-      "AtMs": 31915,
-      "PrivateBytes": 165265408,
-      "WorkingSet": 248041472,
-      "ManagedBytes": 16329776
+      "AtMs": 32690,
+      "PrivateBytes": 142864384,
+      "WorkingSet": 223846400,
+      "ManagedBytes": 14766608
     },
     {
       "Phase": "moods",
-      "AtMs": 32051,
-      "PrivateBytes": 130453504,
-      "WorkingSet": 214773760,
-      "ManagedBytes": 15140712
+      "AtMs": 32691,
+      "PrivateBytes": 142864384,
+      "WorkingSet": 223846400,
+      "ManagedBytes": 14774832
     },
     {
       "Phase": "moods",
-      "AtMs": 32554,
-      "PrivateBytes": 132558848,
-      "WorkingSet": 215613440,
-      "ManagedBytes": 15348576
+      "AtMs": 33184,
+      "PrivateBytes": 132214784,
+      "WorkingSet": 213401600,
+      "ManagedBytes": 13850936
     },
     {
       "Phase": "moods",
-      "AtMs": 33054,
-      "PrivateBytes": 131522560,
-      "WorkingSet": 215310336,
-      "ManagedBytes": 15438440
+      "AtMs": 33682,
+      "PrivateBytes": 132669440,
+      "WorkingSet": 213594112,
+      "ManagedBytes": 13952888
     },
     {
       "Phase": "moods",
-      "AtMs": 33553,
-      "PrivateBytes": 131121152,
-      "WorkingSet": 214994944,
-      "ManagedBytes": 15523736
+      "AtMs": 34193,
+      "PrivateBytes": 131141632,
+      "WorkingSet": 213037056,
+      "ManagedBytes": 14037600
     },
     {
       "Phase": "moods",
-      "AtMs": 34053,
-      "PrivateBytes": 135262208,
-      "WorkingSet": 218279936,
-      "ManagedBytes": 15577344
+      "AtMs": 34683,
+      "PrivateBytes": 130928640,
+      "WorkingSet": 213057536,
+      "ManagedBytes": 14098944
     },
     {
       "Phase": "moods",
-      "AtMs": 34556,
-      "PrivateBytes": 135319552,
-      "WorkingSet": 218279936,
-      "ManagedBytes": 15637752
+      "AtMs": 35183,
+      "PrivateBytes": 130981888,
+      "WorkingSet": 213057536,
+      "ManagedBytes": 14161416
     },
     {
       "Phase": "moods",
-      "AtMs": 35432,
-      "PrivateBytes": 134402048,
-      "WorkingSet": 217354240,
-      "ManagedBytes": 15749592
+      "AtMs": 35682,
+      "PrivateBytes": 131518464,
+      "WorkingSet": 213053440,
+      "ManagedBytes": 14218784
     },
     {
       "Phase": "moods",
-      "AtMs": 35433,
-      "PrivateBytes": 134402048,
-      "WorkingSet": 217354240,
-      "ManagedBytes": 15749592
+      "AtMs": 35999,
+      "PrivateBytes": 131641344,
+      "WorkingSet": 213049344,
+      "ManagedBytes": 14268128
     },
     {
       "Phase": "moods",
-      "AtMs": 35931,
-      "PrivateBytes": 112828416,
-      "WorkingSet": 196075520,
-      "ManagedBytes": 15046280
+      "AtMs": 36181,
+      "PrivateBytes": 110202880,
+      "WorkingSet": 192868352,
+      "ManagedBytes": 13866816
     },
     {
       "Phase": "moods",
-      "AtMs": 36427,
-      "PrivateBytes": 111665152,
-      "WorkingSet": 195506176,
-      "ManagedBytes": 15121744
+      "AtMs": 36681,
+      "PrivateBytes": 111001600,
+      "WorkingSet": 193286144,
+      "ManagedBytes": 13957696
     },
     {
       "Phase": "moods",
-      "AtMs": 36934,
-      "PrivateBytes": 112467968,
-      "WorkingSet": 195719168,
-      "ManagedBytes": 15190296
+      "AtMs": 37193,
+      "PrivateBytes": 110878720,
+      "WorkingSet": 193101824,
+      "ManagedBytes": 14023680
     },
     {
       "Phase": "moods",
-      "AtMs": 37433,
-      "PrivateBytes": 112656384,
-      "WorkingSet": 195907584,
-      "ManagedBytes": 15245664
+      "AtMs": 37714,
+      "PrivateBytes": 110850048,
+      "WorkingSet": 193212416,
+      "ManagedBytes": 14095896
     },
     {
       "Phase": "moods",
-      "AtMs": 37933,
-      "PrivateBytes": 112685056,
-      "WorkingSet": 195915776,
-      "ManagedBytes": 15303400
+      "AtMs": 38214,
+      "PrivateBytes": 111640576,
+      "WorkingSet": 193159168,
+      "ManagedBytes": 14157424
     },
     {
       "Phase": "moods",
-      "AtMs": 38429,
-      "PrivateBytes": 112164864,
-      "WorkingSet": 195510272,
-      "ManagedBytes": 15366880
+      "AtMs": 38714,
+      "PrivateBytes": 111546368,
+      "WorkingSet": 192577536,
+      "ManagedBytes": 14213080
     },
     {
       "Phase": "moods",
-      "AtMs": 38726,
-      "PrivateBytes": 112058368,
-      "WorkingSet": 195391488,
-      "ManagedBytes": 15415400
+      "AtMs": 39392,
+      "PrivateBytes": 110481408,
+      "WorkingSet": 191934464,
+      "ManagedBytes": 14307912
     },
     {
       "Phase": "moods",
-      "AtMs": 38927,
-      "PrivateBytes": 114573312,
-      "WorkingSet": 197586944,
-      "ManagedBytes": 15137232
+      "AtMs": 39393,
+      "PrivateBytes": 110481408,
+      "WorkingSet": 191934464,
+      "ManagedBytes": 14310664
     },
     {
       "Phase": "moods",
-      "AtMs": 39434,
-      "PrivateBytes": 115163136,
-      "WorkingSet": 198062080,
-      "ManagedBytes": 15265280
+      "AtMs": 39897,
+      "PrivateBytes": 110698496,
+      "WorkingSet": 192622592,
+      "ManagedBytes": 13800168
     },
     {
       "Phase": "moods",
-      "AtMs": 39931,
-      "PrivateBytes": 114515968,
-      "WorkingSet": 197558272,
-      "ManagedBytes": 15381040
+      "AtMs": 40391,
+      "PrivateBytes": 110153728,
+      "WorkingSet": 192249856,
+      "ManagedBytes": 13916640
     },
     {
       "Phase": "moods",
-      "AtMs": 40438,
-      "PrivateBytes": 114331648,
-      "WorkingSet": 197533696,
-      "ManagedBytes": 15476312
+      "AtMs": 40885,
+      "PrivateBytes": 110260224,
+      "WorkingSet": 191893504,
+      "ManagedBytes": 14023400
     },
     {
       "Phase": "moods",
-      "AtMs": 40932,
-      "PrivateBytes": 114348032,
-      "WorkingSet": 197836800,
-      "ManagedBytes": 15539464
+      "AtMs": 41437,
+      "PrivateBytes": 111898624,
+      "WorkingSet": 192577536,
+      "ManagedBytes": 14120576
     },
     {
       "Phase": "moods",
-      "AtMs": 41449,
-      "PrivateBytes": 114212864,
-      "WorkingSet": 197398528,
-      "ManagedBytes": 15599456
+      "AtMs": 41983,
+      "PrivateBytes": 110784512,
+      "WorkingSet": 192196608,
+      "ManagedBytes": 14184688
     },
     {
       "Phase": "moods",
-      "AtMs": 42073,
-      "PrivateBytes": 114229248,
-      "WorkingSet": 197636096,
-      "ManagedBytes": 15682848
+      "AtMs": 42479,
+      "PrivateBytes": 111603712,
+      "WorkingSet": 191901696,
+      "ManagedBytes": 14249696
     },
     {
       "Phase": "moods",
-      "AtMs": 42075,
-      "PrivateBytes": 114229248,
-      "WorkingSet": 197636096,
-      "ManagedBytes": 15691072
+      "AtMs": 42743,
+      "PrivateBytes": 109871104,
+      "WorkingSet": 191819776,
+      "ManagedBytes": 14291112
     },
     {
       "Phase": "moods",
-      "AtMs": 42602,
-      "PrivateBytes": 114229248,
-      "WorkingSet": 197636096,
-      "ManagedBytes": 15752912
+      "AtMs": 43013,
+      "PrivateBytes": 109871104,
+      "WorkingSet": 191819776,
+      "ManagedBytes": 14324696
     },
     {
       "Phase": "moods",
-      "AtMs": 43150,
-      "PrivateBytes": 114221056,
-      "WorkingSet": 197627904,
-      "ManagedBytes": 15820728
+      "AtMs": 43511,
+      "PrivateBytes": 109854720,
+      "WorkingSet": 191803392,
+      "ManagedBytes": 14382264
     },
     {
       "Phase": "moods",
-      "AtMs": 43676,
-      "PrivateBytes": 113831936,
-      "WorkingSet": 197238784,
-      "ManagedBytes": 15881952
+      "AtMs": 44056,
+      "PrivateBytes": 109633536,
+      "WorkingSet": 191582208,
+      "ManagedBytes": 14448056
     },
     {
       "Phase": "moods",
-      "AtMs": 44274,
-      "PrivateBytes": 113831936,
-      "WorkingSet": 197238784,
-      "ManagedBytes": 15954232
+      "AtMs": 44571,
+      "PrivateBytes": 109178880,
+      "WorkingSet": 191127552,
+      "ManagedBytes": 14513848
     },
     {
       "Phase": "moods",
-      "AtMs": 44819,
-      "PrivateBytes": 111812608,
-      "WorkingSet": 195219456,
-      "ManagedBytes": 16019664
+      "AtMs": 45075,
+      "PrivateBytes": 109178880,
+      "WorkingSet": 191127552,
+      "ManagedBytes": 14571416
+    },
+    {
+      "Phase": "moods",
+      "AtMs": 45685,
+      "PrivateBytes": 106827776,
+      "WorkingSet": 188776448,
+      "ManagedBytes": 14647664
     },
     {
       "Phase": "combo",
-      "AtMs": 45385,
-      "PrivateBytes": 109289472,
-      "WorkingSet": 192434176,
-      "ManagedBytes": 15032600
+      "AtMs": 46181,
+      "PrivateBytes": 105795584,
+      "WorkingSet": 187559936,
+      "ManagedBytes": 13636760
     },
     {
       "Phase": "combo",
-      "AtMs": 45885,
-      "PrivateBytes": 111644672,
+      "AtMs": 46684,
+      "PrivateBytes": 108994560,
+      "WorkingSet": 190980096,
+      "ManagedBytes": 14012992
+    },
+    {
+      "Phase": "combo",
+      "AtMs": 47188,
+      "PrivateBytes": 112594944,
       "WorkingSet": 195256320,
-      "ManagedBytes": 15345688
+      "ManagedBytes": 14297816
     },
     {
       "Phase": "combo",
-      "AtMs": 46385,
-      "PrivateBytes": 112291840,
-      "WorkingSet": 196341760,
-      "ManagedBytes": 15671168
+      "AtMs": 47686,
+      "PrivateBytes": 114540544,
+      "WorkingSet": 196108288,
+      "ManagedBytes": 14610400
     },
     {
       "Phase": "combo",
-      "AtMs": 46881,
-      "PrivateBytes": 112746496,
-      "WorkingSet": 197017600,
-      "ManagedBytes": 15976976
+      "AtMs": 48189,
+      "PrivateBytes": 111972352,
+      "WorkingSet": 194969600,
+      "ManagedBytes": 14711496
     },
     {
       "Phase": "combo",
-      "AtMs": 47382,
-      "PrivateBytes": 112496640,
-      "WorkingSet": 196771840,
-      "ManagedBytes": 16100336
+      "AtMs": 48682,
+      "PrivateBytes": 112263168,
+      "WorkingSet": 195256320,
+      "ManagedBytes": 14783288
     },
     {
       "Phase": "combo",
-      "AtMs": 47886,
-      "PrivateBytes": 113086464,
-      "WorkingSet": 197144576,
-      "ManagedBytes": 16182576
+      "AtMs": 49234,
+      "PrivateBytes": 111869952,
+      "WorkingSet": 194998272,
+      "ManagedBytes": 14850736
     },
     {
       "Phase": "combo",
-      "AtMs": 48381,
-      "PrivateBytes": 112164864,
-      "WorkingSet": 196382720,
-      "ManagedBytes": 16248368
+      "AtMs": 49821,
+      "PrivateBytes": 112181248,
+      "WorkingSet": 195276800,
+      "ManagedBytes": 14924976
     },
     {
       "Phase": "combo",
-      "AtMs": 48882,
-      "PrivateBytes": 112410624,
-      "WorkingSet": 196689920,
-      "ManagedBytes": 16305936
+      "AtMs": 50344,
+      "PrivateBytes": 112218112,
+      "WorkingSet": 195276800,
+      "ManagedBytes": 14998992
     },
     {
       "Phase": "combo",
-      "AtMs": 49387,
-      "PrivateBytes": 112418816,
-      "WorkingSet": 196755456,
-      "ManagedBytes": 16363504
-    },
-    {
-      "Phase": "combo",
-      "AtMs": 49879,
-      "PrivateBytes": 112607232,
-      "WorkingSet": 196841472,
-      "ManagedBytes": 16429296
-    },
-    {
-      "Phase": "combo",
-      "AtMs": 50384,
-      "PrivateBytes": 112640000,
-      "WorkingSet": 196857856,
-      "ManagedBytes": 16503312
+      "AtMs": 51080,
+      "PrivateBytes": 112140288,
+      "WorkingSet": 195149824,
+      "ManagedBytes": 15102072
     },
     {
       "Phase": "idle",
-      "AtMs": 50511,
-      "PrivateBytes": 112640000,
-      "WorkingSet": 196857856,
-      "ManagedBytes": 16519760
+      "AtMs": 51279,
+      "PrivateBytes": 112140288,
+      "WorkingSet": 195149824,
+      "ManagedBytes": 15124776
     },
     {
       "Phase": "idle",
-      "AtMs": 75556,
-      "PrivateBytes": 105025536,
-      "WorkingSet": 9191424,
-      "ManagedBytes": 19496416
+      "AtMs": 76283,
+      "PrivateBytes": 107053056,
+      "WorkingSet": 13467648,
+      "ManagedBytes": 18089720
     }
   ]
 }
