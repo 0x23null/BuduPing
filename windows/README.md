@@ -1,6 +1,7 @@
 # BuduPing — Windows (.NET 8 WPF)
 
 Overlay trong suốt, click-through, nhận sticker và tin nhắn từ Android qua Firebase SSE.
+Mở EXE có thông báo đã chạy; mở lần nữa đưa cài đặt của tiến trình hiện có lên.
 Settings mở lần đầu để lấy mã cặp; nút X thu xuống tray, menu tray mới thoát hẳn.
 
 ## Build trên Windows
@@ -32,10 +33,13 @@ Workflow `build-windows.yml` thực hiện cùng quy trình và chụp settings 
 | `Ui/OverlayWindow.*` | Motion, normalize theo alpha toàn animation, particle pool, giảm chuyển động |
 | `Ui/SettingsWindow.*` | Mã cặp, vị trí, riêng tư, tiếng, autostart và trả lời |
 
-Combo chỉ gộp các tap cùng cảm xúc không có chữ/biến thể chỉ định trong 2 giây.
+Combo chỉ gộp các tap cùng cảm xúc/nhân vật không có chữ và không khoá biến thể trong 2 giây.
+Bubu là gấu trắng; Dudu là gấu nâu. Xem `Core/PresentationPolicy.cs` cho giới hạn kích thước, hạt và nhịp âm.
 Tin có chữ không bị xoá để nhường chỗ cho spam. Inbox được hoàn tất theo Firebase push key;
 `displayed` là đã đưa vào frame hiển thị, không phải người nhận đã đọc.
 
 Tuỳ chọn `BUDUPING_DIAGNOSTICS=1` ghi số đo cục bộ có giới hạn, không chứa mã cặp hay nội dung tin nhắn.
 Thông tin wire contract, test máy thật và giới hạn hiện tại nằm trong
-[báo cáo bàn giao](../docs/DEVELOPMENT-REPORT-0.2.0.md).
+[báo cáo bàn giao](../docs/DEVELOPMENT-REPORT-0.2.2.md).
+
+Đo offline không dùng cặp thật: `BuduPing.exe --memory-review <thư mục>`. JSON chứa working set, private bytes, managed heap và idle CPU; so sánh cùng máy và workload, không xem working set sau trim là toàn bộ bộ nhớ cam kết.

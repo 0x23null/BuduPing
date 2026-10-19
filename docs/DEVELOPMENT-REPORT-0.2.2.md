@@ -61,3 +61,24 @@ First Windows comparison at d7dcafa (run [39188178342](https://github.com/0x23nu
 Second comparison at de3cd7e, [39188492993](https://github.com/0x23null/BuduPing/actions/runs/39188492993), also passed all Windows checks: peak private 149.4 → 132.3 MiB; settled private 78.9 → 93.3 MiB; peak working set 227.1 → 204.1 MiB; settled working set 21.7 → 10.9 MiB. Idle CPU 0.999% → 1.311% of one core. Settled private allocation varied in the opposite direction, so do not claim every memory metric improves. Runtime combo rotation can choose different eligible GIFs, and optimized GC/retained heap commitments vary.
 
 Measurement correction: the first two idle CPU results included the harness's own 500 ms process-query timer. Stop that periodic sampler before the 25 s idle interval in **both** baseline and candidate, then sample again at the end. This changes measurement only; production memory/GC/audio behavior stays unchanged. The final comparison uses this corrected harness. Physical-device checking remains open.
+
+## Final source validation before release
+
+- Android production/UI source `15a3798`: [APK 39188973677](https://github.com/0x23null/BuduPing/actions/runs/39188973677) and [six instrumented tests 39188973650](https://github.com/0x23null/BuduPing/actions/runs/39188973650) pass. Seven PNGs collected: light, dark, Dudu, large text, character picker, variant picker and setup. Tagged dialog capture now shows the correct modal; large-font header stays horizontal. Later commits change only Windows/profiling/docs; [APK 39189088503](https://github.com/0x23null/BuduPing/actions/runs/39189088503) also passes.
+- Final Windows application source `b97464f`: [39189367228](https://github.com/0x23null/BuduPing/actions/runs/39189367228) passes publish, 558 core assertions, three asset tests, native character availability mapping, 13/200-tap checks, discreet test/reply checks, screenshot geometry and baseline/candidate measurement. The test button now chooses only moods supported by the selected role, avoiding an empty preview for Dudu's unavailable sad/sorry moods.
+- Final corrected-harness comparison from that run:
+
+| Metric | Shipped 0.2.1 | Candidate 0.2.2 |
+| --- | ---: | ---: |
+| Peak private | 149.7 MiB | 152.2 MiB |
+| Settled private | 98.1 MiB | 84.4 MiB |
+| Peak working set | 227.6 MiB | 226.5 MiB |
+| Settled working set | 18.6 MiB | 17.7 MiB |
+| Idle CPU, one logical core | 0.186% | 0.312% |
+
+Across runs, peak memory is comparable or lower; one peak-private result is +1.7%. Idle/private metrics vary, so **do not promise a fixed percentage saving or identical readings on the owner's machine**. The performance decision is to retain the proven 0.2.1 renderer/cache/trim, bound work and avoid new media frameworks. Both private allocation and working set remain visible in reports.
+
+- Asset corner audit: 27 packaged GIFs, **292 frames**, every frame's four corners transparent. This does not prove edge/halo quality. The revised [STICKER-TEST-PLAN.md](STICKER-TEST-PLAN.md) distinguishes baked asset backgrounds from the intentional native bright card, corrects role names/retired love-01, and covers physical-speaker spam, quiet mode and startup/relaunch.
+- Native Windows PNG/JSON and memory evidence: [ci-reports/reports/ui-windows](https://github.com/0x23null/BuduPing/tree/ci-reports/reports/ui-windows). Android PNGs: artifact on the linked matching UI run.
+
+The documentation-only final commit skips redundant branch CI. Product code matches the validated commits above; merge/release still performs both platform builds and publishes APK + EXE together. Publication result will be recorded after the release job completes.
