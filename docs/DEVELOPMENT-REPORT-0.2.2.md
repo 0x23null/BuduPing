@@ -47,3 +47,7 @@ Windows `--ui-review DIR` now captures settings, message, compact size, combo, d
 Windows CI compares native memory/CPU using the **same offline workload** compiled into unmodified shipped 0.2.1 plus a measurement hook, then the candidate. It samples working set, private bytes and managed heap through six GIF moods twice, a 20-tap burst and 25 s idle. Both versions retain the shipped idle GC/working-set trim; the harness forces neither. One runner measurement is an observation, not a physical-PC budget or statistical performance proof. CI JSON and screenshots are persisted on `ci-reports` as well as uploaded as artifacts.
 
 Remaining device checks: audible rhythm/volume during rapid taps; mixed-DPI and all-corner placement; clicking an already running EXE; autostart suppression; real Firebase Android → PC combo and reply; long idle/foreground Task Manager readings on the owner's PC. No production pair is used by tests.
+
+### Native visual follow-up
+
+At d7dcafa, WPF publish, 558 core assertions, quiet-mode tests and 200-tap test passed. Native screenshots confirmed 109.8 / 65.88 DIP artwork, readable unscaled message text, removed close button and the startup notice. Visual review found that center-origin particle scaling displaced a large halo below the small card; use a zero origin for particle elements so size and position are scaled consistently. Revalidate matching native captures after this fix.

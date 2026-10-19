@@ -515,7 +515,7 @@ public partial class OverlayWindow : Window
         tg.Children.Add(p.Scale);
         tg.Children.Add(p.Move);
         el.RenderTransform = tg;
-        el.RenderTransformOrigin = new Point(0.5, 0.5);
+        el.RenderTransformOrigin = new Point(0, 0);
         el.Opacity = 0;
         Canvas.SetLeft(el, x);
         Canvas.SetTop(el, y);
