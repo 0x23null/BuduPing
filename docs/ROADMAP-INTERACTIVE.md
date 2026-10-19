@@ -4,6 +4,12 @@ Cảm hứng: series TikTok "Bubu Dudu desktop buddy" của ANDIE/@andi.o.matic
 (93K + 330K lượt xem). Chủ dự án chốt hướng: **sticker siêu đa dạng + siêu
 tương tác, thú vị, sáng tạo**. Tài liệu này là la bàn cho các bản 0.3+.
 
+Ranh giới rõ ràng (chủ dự án, 2026-10-19): **chỉ mượn ngôn ngữ HÌNH ẢNH kiểu
+pet** (pose bám viền, cảm giác sống thường trực, font/bong bóng cute) — không
+sao chép nội dung hay câu chữ của app mẫu (kiểu "You're Back!"). Concept vẫn
+là của BuduPing: kênh ping cảm xúc giữa hai người; mọi khoảnh khắc xuất hiện
+đều bắt đầu từ một cái chạm của người thương, không phải pet tự nói với chủ.
+
 Nguyên tắc bất biến (luật của chủ dự án, không đổi):
 - Không "gợi ý theo giờ"/nhắc việc theo thời gian.
 - Mượt như Telegram, nhẹ RAM/CPU; buddy ngồi yên thì CPU ~0% và không giải mã GIF liên tục (dùng frame tĩnh khi idle).
