@@ -59,7 +59,11 @@ jobs:
           $target = Join-Path $env:RUNNER_TEMP 'buduping-ui'
           $process = Start-Process -FilePath './publish/BuduPing.exe' -ArgumentList @('--ui-review', $target) -PassThru
           if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'UI review timed out' }
-          if ($process.ExitCode -ne 0) { throw 'UI review process failed' }
+          if ($process.ExitCode -ne 0) {
+            $errFile = Join-Path $target 'review-error.txt'
+            if (Test-Path $errFile) { Get-Content $errFile | Write-Host }
+            throw 'UI review process failed'
+          }
           if (-not (Test-Path (Join-Path $target 'settings-top.png'))) { throw 'Missing native screenshot' }
           if (-not (Test-Path (Join-Path $target 'overlay-combo.png'))) { throw 'Missing overlay screenshot' }
 
