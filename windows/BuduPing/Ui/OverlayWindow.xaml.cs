@@ -593,30 +593,49 @@ public partial class OverlayWindow : Window
         }
     }
 
-    private BitmapImage? _avatarBubu;
-    private BitmapImage? _avatarDudu;
+    private BitmapSource? _avatarBubu;
+    private BitmapSource? _avatarDudu;
 
-    /// <summary>The bubble header shows the sender's own character (first frame
-    /// of their hello sticker) instead of a generic heart when we know who sent it.</summary>
+    /// <summary>The bubble header shows the sender's own character instead of a
+    /// generic heart when we know who sent it: the head of their hello sticker,
+    /// cropped big and seated on a bright gradient disc so BOTH faces — white
+    /// panda and dark brown bear alike — stay colorful and readable at 26px
+    /// on the dark bubble (the full-body frame read as a dark smudge).</summary>
     private void UpdateBubbleAvatar(string character)
     {
-        BitmapImage? avatar = character switch
+        BitmapSource? avatar = character switch
         {
-            "bubu" => _avatarBubu ??= _stickers.GetRandom("hello", "hello-01", "bubu"),
-            "dudu" => _avatarDudu ??= _stickers.GetRandom("hello", "hello-03", "dudu"),
+            "bubu" => _avatarBubu ??= LoadAvatar("hello-01", "bubu"),
+            "dudu" => _avatarDudu ??= LoadAvatar("hello-03", "dudu"),
             _ => null,
         };
         if (avatar != null)
         {
             BubbleAvatar.Source = avatar;
-            BubbleAvatar.Visibility = Visibility.Visible;
+            BubbleAvatarChip.Visibility = Visibility.Visible;
             BubbleHeartChip.Visibility = Visibility.Collapsed;
         }
         else
         {
-            BubbleAvatar.Visibility = Visibility.Collapsed;
+            BubbleAvatarChip.Visibility = Visibility.Collapsed;
             BubbleHeartChip.Visibility = Visibility.Visible;
         }
+    }
+
+    private BitmapSource? LoadAvatar(string variant, string character)
+    {
+        var full = _stickers.GetRandom("hello", variant, character);
+        if (full == null) return null;
+        var b = _stickers.LastInfo?.bounds;
+        if (b?.Length != 4 || b[2] <= b[0] || b[3] <= b[1]) return full;
+        int x = Math.Max(0, b[0]);
+        int y = Math.Max(0, b[1]);
+        int w = Math.Min(full.PixelWidth - x, b[2] - b[0]);
+        int h = Math.Min(full.PixelHeight - y, (int)((b[3] - b[1]) * 0.68));
+        if (w < 8 || h < 8) return full;
+        var crop = new CroppedBitmap(full, new Int32Rect(x, y, w, h));
+        crop.Freeze();
+        return crop;
     }
 
     private static void StartScaleKeyframes(ScaleTransform target,

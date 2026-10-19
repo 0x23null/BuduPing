@@ -30,13 +30,25 @@
                     </Border.Effect>
                     <StackPanel>
                         <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions><ColumnDefinition Width="28"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                            <Border x:Name="BubbleHeartChip" Width="22" Height="22" CornerRadius="11" Background="#46416B" HorizontalAlignment="Left">
-                                <Path Data="M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z" Fill="#FF9EC2" Stretch="Uniform" Width="12" Height="11"/>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="32"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <Border x:Name="BubbleHeartChip" Width="26" Height="26" CornerRadius="13" HorizontalAlignment="Left">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#FF9EC2" Offset="0"/><GradientStop Color="#CE4A7C" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Path Data="M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z" Fill="#FFFFFF" Stretch="Uniform" Width="14" Height="13"/>
                             </Border>
-                            <Image x:Name="BubbleAvatar" Width="22" Height="22" Visibility="Collapsed" Stretch="UniformToFill" HorizontalAlignment="Left">
-                                <Image.Clip><EllipseGeometry Center="11,11" RadiusX="11" RadiusY="11"/></Image.Clip>
-                            </Image>
+                            <Border x:Name="BubbleAvatarChip" Width="26" Height="26" CornerRadius="13" Visibility="Collapsed" HorizontalAlignment="Left">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#FFE9F4" Offset="0"/><GradientStop Color="#FFC7DC" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <Image x:Name="BubbleAvatar" Width="24" Height="24" Stretch="UniformToFill" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Image.Clip><EllipseGeometry Center="12,12" RadiusX="12" RadiusY="12"/></Image.Clip>
+                                </Image>
+                            </Border>
                             <TextBlock x:Name="BubbleFrom" Grid.Column="1" FontSize="13" FontWeight="SemiBold" FontFamily="pack://application:,,,/Assets/Fonts/Baloo2.ttf#Baloo 2"
                                 Foreground="#FFD9E6" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0" MaxWidth="170"/>
                             <TextBlock x:Name="BubbleEmotion" Grid.Column="2" FontSize="11" Foreground="#C9C3E6" VerticalAlignment="Center"/>

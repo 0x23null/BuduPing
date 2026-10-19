@@ -118,7 +118,7 @@ public partial class App : Application
                     !_stickers.HasForCharacter("sad", "bubu"))
                     throw new InvalidOperationException("Native character catalog mapping is incorrect.");
                 _overlay = new OverlayWindow(_stickers, this);
-                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương", Character = "bubu",
+                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương", Character = "dudu",
                     Text = "Một cái ôm gửi đến bạn. Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
                 await Task.Delay(950);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-message.png");
@@ -154,7 +154,7 @@ public partial class App : Application
                 Config.DiscreetMode = false; Config.OverlayScale = 1;
                 _overlay.ResetPair();
                 for (int i = 0; i < 200; i++) _overlay.ShowPing(new PingEvent
-                    { Type = "love", Variant = "love-03", Character = "bubu", VariantLocked = false, IsLocal = true });
+                    { Type = "love", Variant = "love-03", Character = "dudu", VariantLocked = false, IsLocal = true });
                 await Task.Delay(750);
                 if (_overlay.ActiveComboCount != 200 || _overlay.ActiveParticleCount > PresentationPolicy.MaxParticles)
                     throw new InvalidOperationException("200-tap spam did not remain bounded.");
