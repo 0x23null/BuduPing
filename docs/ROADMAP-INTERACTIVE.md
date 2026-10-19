@@ -2,7 +2,7 @@
 
 Cảm hứng: series TikTok "Bubu Dudu desktop buddy" của ANDIE/@andi.o.matic
 (93K + 330K lượt xem). Chủ dự án chốt hướng: **sticker siêu đa dạng + siêu
-tương tác, thú vị, sáng tạo**. Tài liệu này là la bàn cho các bản 0.3+.
+tương tác, thú vị, sáng tạo**. Tài liệu này là la bàn cho các bản 0.2.x tiếp theo.
 
 Ranh giới rõ ràng (chủ dự án, 2026-10-19): **chỉ mượn ngôn ngữ HÌNH ẢNH kiểu
 pet** (pose bám viền, cảm giác sống thường trực, font/bong bóng cute) — không
@@ -50,6 +50,6 @@ từng frame), không chữ fan-edit/watermark, ≥300px ưu tiên, gắn thẻ 
 
 ## Lộ trình
 
-- **v0.3**: cảm xúc `hello` + edge peek, bong bóng tối/font cute, icon gửi mới.
-- **v0.4**: perch mode + phản ứng khi bấm, âm thanh theo cảm xúc.
-- **v0.5**: kéo thả buddy, thêm pose viền cho vài cảm xúc nữa.
+- **v0.2.3**: cảm xúc `hello` + edge peek, bong bóng tối/font cute, icon gửi mới.
+- **v0.2.4**: perch mode + phản ứng khi bấm, âm thanh theo cảm xúc.
+- **v0.2.5**: kéo thả buddy, thêm pose viền cho vài cảm xúc nữa.
