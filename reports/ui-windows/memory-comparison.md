@@ -4,11 +4,11 @@ Same Windows runner and harness, fixed six-mood sequence and 20-tap combo (runti
 
 | Metric | v0.2.1 | Candidate | Change |
 | --- | ---: | ---: | ---: |
-| Peak private bytes | 155.3 MiB | 142.5 MiB | -8.2% |
-| Settled private bytes | 99.9 MiB | 91.1 MiB | -8.8% |
-| Peak working set | 233.3 MiB | 221.5 MiB | -5.0% |
-| Settled working set | 15.9 MiB | 21.5 MiB | +35.0% |
+| Peak private bytes | 158.3 MiB | 134.7 MiB | -14.9% |
+| Settled private bytes | 103.0 MiB | 100.1 MiB | -2.9% |
+| Peak working set | 236.0 MiB | 214.4 MiB | -9.2% |
+| Settled working set | 17.7 MiB | 10.4 MiB | -41.3% |
 
-Idle CPU (one logical core, periodic sampler stopped): baseline 0.437%; candidate 0.561%.
+Idle CPU (one logical core, periodic sampler stopped): baseline 0.500%; candidate 0.740%.
 
 Private bytes and working set are different metrics. This CI result is not a guarantee for a physical PC, GPU, audio device or mixed-DPI setup. Confirm on the user machine with the same --memory-review command.
