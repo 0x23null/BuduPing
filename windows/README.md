@@ -1,58 +1,45 @@
-# BuduPing — Windows Overlay (C# .NET 8 WPF)
+# BuduPing — Windows (.NET 8 WPF)
 
-App desktop của dự án BuduPing: overlay trong suốt ở góc phải dưới, nhận event cảm xúc
-từ Firebase Realtime Database và hiện sticker Yier & Bubu kèm bong bóng chat.
+Overlay trong suốt, click-through, nhận sticker và tin nhắn từ Android qua Firebase SSE.
+Mở EXE có thông báo đã chạy; mở lần nữa đưa cài đặt của tiến trình hiện có lên.
+Settings mở lần đầu để lấy mã cặp; nút X thu xuống tray, menu tray mới thoát hẳn.
 
-## Build (trên máy Windows hoặc GitHub Actions)
+## Build trên Windows
+
+Từ thư mục gốc repo, chuẩn bị asset và kiểm tra hợp đồng:
 
 ```powershell
-cd windows/BuduPing
-dotnet publish -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true -o publish
+python -m pip install -r tools/requirements-assets.txt
+python tools/prepare_assets.py
+python -m unittest discover -s tests/assets -v
+dotnet run --project tests/BuduPing.CoreChecks -c Release
+dotnet publish windows/BuduPing -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 ```
 
-→ `publish/BuduPing.exe` (bấm-là-chạy, không cần cài .NET).
-Workflow `.github/workflows/build-windows.yml` tự build khi push.
+`publish/BuduPing.exe` chạy độc lập. GIF, catalog, WAV và icon đều nhúng trong assembly.
+Workflow `build-windows.yml` thực hiện cùng quy trình và chụp settings native bằng
+`BuduPing.exe --ui-review <thư mục>`. Chế độ review không đọc config cá nhân hay kết nối Firebase.
 
-## Cấu trúc
+## Điểm vào code
 
-```
-BuduPing/
-├── BuduPing.csproj
-├── App.xaml(.cs)            # khởi động: config → tray → sync → presence; điều phối chung
-├── Core/
-│   ├── PairCode.cs          # mã cặp Crockford 7+1 checksum, Y HỆT docs/pair-code.md
-│   ├── PingEvent.cs         # model event { id, type, text, from, ts }
-│   └── AppConfig.cs         # %AppData%/BuduPing/config.json + autostart (HKCU\...\Run)
-├── Services/
-│   ├── FirebaseSync.cs      # REST + SSE streaming /pairs/{id}/inbox (push, không polling),
-│   │                        # dedupe theo id, DELETE sau khi hiện, presence heartbeat 20s
-│   └── StickerService.cs    # preload/decode GIF lúc khởi động, random chống trùng,
-│                            # map type → nhãn TV + loại hạt
-├── Ui/
-│   ├── OverlayWindow.*      # overlay click-through (WS_EX_TRANSPARENT), queue 3,
-│   │                        # combo 1.5s (Lv2=x3, Lv3=x5+), hạt cục bộ pool 24,
-│   │                        # spring 0.6→1.08→1 (260ms), ẩn sau 5s
-│   └── SettingsWindow.*     # mã cặp to + Copy/Gen mới, công tắc tiếng + autostart, Test sticker
-└── Assets/
-    ├── tray.ico / Sounds/pop.wav   # nhúng vào assembly
-    └── Stickers/<type>/*.gif       # teammate thả GIF trong suốt vào đây
-```
+| Thành phần | Vai trò |
+| --- | --- |
+| `App.xaml.cs` | Tray, sync, presence, reply hotkey, lifecycle và config |
+| `Core/PingBacklog.cs` | Hàng đợi bounded, giữ tin có chữ, luật combo/TTL |
+| `Core/RecentEventIds.cs` | Dedupe có giới hạn và hỗ trợ retry event đã defer |
+| `Services/FirebaseSync.cs` | SSE/reconnect, completion PATCH nguyên tử, phản hồi ôm |
+| `Services/StickerService.cs` | GIF nhúng, cache decode theo ngân sách và pin source đang phát |
+| `Services/DisplayPlacement.cs` | Monitor, góc, DPI và kích thước overlay |
+| `Ui/OverlayWindow.*` | Motion, normalize theo alpha toàn animation, particle pool, giảm chuyển động |
+| `Ui/SettingsWindow.*` | Mã cặp, vị trí, riêng tư, tiếng, autostart và trả lời |
 
-## Luồng chạy
+Combo chỉ gộp các tap cùng cảm xúc/nhân vật không có chữ và không khoá biến thể trong 2 giây.
+Bubu là gấu trắng; Dudu là gấu nâu. Xem `Core/PresentationPolicy.cs` cho giới hạn kích thước, hạt và nhịp âm.
+Tin có chữ không bị xoá để nhường chỗ cho spam. Inbox được hoàn tất theo Firebase push key;
+`displayed` là đã đưa vào frame hiển thị, không phải người nhận đã đọc.
 
-1. Lần đầu mở → tự gen mã `XXXX-XXXX`, lưu `%AppData%/BuduPing/config.json`.
-2. `FirebaseSync` mở 1 SSE stream tới `/pairs/{pairId}/inbox.json` (push thật, idle ~0% CPU),
-   tự reconnect backoff 1s→30s khi rớt mạng.
-3. Event mới → dedupe theo `id` → overlay hiện sticker + bong bóng (tối đa 80 ký tự) →
-   DELETE khỏi inbox → heartbeat presence mỗi 20s.
-4. Combo: cùng `type` trong 1.5s → gộp (x3 = to 1.3x + badge, x5+ = bùng nổ cục bộ:
-   sticker lớn + 3 mini chạy nối đuôi + mưa hạt quanh sticker).
-5. X cửa sổ cài đặt chỉ ẩn xuống tray; thoát hẳn qua menu tray (xoá presence → chấm xám).
+Tuỳ chọn `BUDUPING_DIAGNOSTICS=1` ghi số đo cục bộ có giới hạn, không chứa mã cặp hay nội dung tin nhắn.
+Thông tin wire contract, test máy thật và giới hạn hiện tại nằm trong
+[báo cáo bàn giao](../docs/DEVELOPMENT-REPORT-0.2.2.md).
 
-## Chưa làm / lưu ý
-
-- Chưa có: đáp lại bằng phím tắt (spec mục 8.1), peek mode khi fullscreen, giờ yên lặng —
-  theo thứ tự ưu tiên V1, để bản sau.
-- Font bong bóng dùng font hệ thống (spec gợi ý Baloo 2 — chưa nhúng font).
-- Chưa test build trên Windows (môi trường dev là Linux); build đầu tiên nên chạy qua
-  GitHub Actions để bắt lỗi sớm.
+Đo offline không dùng cặp thật: `BuduPing.exe --memory-review <thư mục>`. JSON chứa working set, private bytes, managed heap và idle CPU; so sánh cùng máy và workload, không xem working set sau trim là toàn bộ bộ nhớ cam kết.

@@ -1,4 +1,6 @@
 using System.IO;
+using System.Text.Json;
+using System.Windows;
 using System.Windows.Media.Imaging;
 
 namespace BuduPing.Services;
@@ -30,18 +32,18 @@ public sealed class StickerService
     public static readonly IReadOnlyDictionary<string, string> TypeLabels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["love"] = "Yêu ❤️",
-            ["miss"] = "Nhớ 🥺",
-            ["hug"] = "Ôm 🤗",
-            ["kiss"] = "Hôn 😘",
-            ["tease"] = "Ghét yêu 😤",
-            ["angry"] = "Giận 😠",
-            ["sad"] = "Buồn 🥲",
-            ["cheer"] = "Cố lên 💪",
-            ["goodnight"] = "Ngủ ngon 🌙",
-            ["sorry"] = "Xin lỗi 🥹",
-            ["funny"] = "Cười 😂",
-            ["hungry"] = "Đói 🍜",
+            ["love"] = "Yêu",
+            ["miss"] = "Nhớ",
+            ["hug"] = "Ôm",
+            ["kiss"] = "Hôn",
+            ["tease"] = "Ghét yêu",
+            ["angry"] = "Giận",
+            ["sad"] = "Buồn",
+            ["cheer"] = "Cố lên",
+            ["goodnight"] = "Ngủ ngon",
+            ["sorry"] = "Xin lỗi",
+            ["funny"] = "Cười",
+            ["hungry"] = "Đói",
             ["jealous"] = "Ghen 😒",
         };
 
@@ -70,7 +72,8 @@ public sealed class StickerService
 
     private sealed class GifSource
     {
-        public string Key = "";              // định danh duy nhất (tên resource / đường dẫn)
+        public string Key = "";
+        public string Variant = "";              // định danh duy nhất (tên resource / đường dẫn)
         public byte[] Bytes = Array.Empty<byte>(); // GIF nén — giữ trong RAM rất nhẹ
     }
 
@@ -79,11 +82,27 @@ public sealed class StickerService
     {
         public MemoryStream Stream = null!;
         public BitmapImage Image = null!;
+        public long Cost;
     }
 
-    private const int MaxDecoded = 6;
+    private const int MaxDecoded = 4;
+    private const long MaxDecodedBytes = 16L * 1024 * 1024;
+    private readonly Dictionary<string, StickerInfo> _catalog = new();
+    public StickerInfo? LastInfo { get; private set; }
+    public long DecodedBytes => _decoded.Values.Sum(x => x.Cost);
+
+    public sealed class StickerInfo
+    {
+        public string id { get; set; } = "";
+        public int width { get; set; }
+        public int height { get; set; }
+        public int[] bounds { get; set; } = Array.Empty<int>();
+        public long estimatedBytes { get; set; }
+        public List<string> characters { get; set; } = new(); // "bubu" = white panda, "dudu" = brown bear
+    }
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
+    private readonly Dictionary<string, int> _pins = new(StringComparer.Ordinal);
     private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
 
     public StickerService(string stickersRoot) => _root = stickersRoot;
@@ -94,6 +113,15 @@ public sealed class StickerService
     public void Preload()
     {
         _byType.Clear();
+        _catalog.Clear();
+        try
+        {
+            using var catalog = typeof(StickerService).Assembly.GetManifestResourceStream("BuduPing.Assets.Stickers.catalog.json");
+            if (catalog != null)
+                foreach (var info in JsonSerializer.Deserialize<List<StickerInfo>>(catalog) ?? new())
+                    _catalog[info.id] = info;
+        }
+        catch { }
 
         // 1) GIF nhúng trong exe: BuduPing.Assets.Stickers.<type>.<file>.gif
         try
@@ -141,7 +169,9 @@ public sealed class StickerService
             list = new List<GifSource>();
             _byType[type] = list;
         }
-        list.Add(new GifSource { Key = key, Bytes = bytes });
+        string variant = key.StartsWith("file:", StringComparison.Ordinal)
+            ? Path.GetFileNameWithoutExtension(key[5..]) : key.Split('.')[^2];
+        list.Add(new GifSource { Key = key, Variant = variant, Bytes = bytes });
     }
 
     /// <summary>Nhả toàn bộ GIF đã decode (gọi sau khi overlay ẩn hẳn để trả RAM về idle).</summary>
@@ -153,12 +183,15 @@ public sealed class StickerService
         }
         _decoded.Clear();
         _decodedOrder.Clear();
+        _pins.Clear();
         _lastShownKey = "";
+        LastInfo = null;
     }
 
     /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>
     private BitmapImage? Decode(GifSource src)
     {
+        LastInfo = _catalog.GetValueOrDefault(src.Variant);
         if (_decoded.TryGetValue(src.Key, out var hit))
         {
             _lastShownKey = src.Key;
@@ -173,35 +206,87 @@ public sealed class StickerService
             bmp.StreamSource = stream;
             bmp.EndInit();
             bmp.Freeze();
-            _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp };
+            long cost = LastInfo?.estimatedBytes ?? (long)bmp.PixelWidth * bmp.PixelHeight * 4 * 30;
+            _decoded[src.Key] = new DecodedGif { Stream = stream, Image = bmp, Cost = cost };
             _decodedOrder.Enqueue(src.Key);
             _lastShownKey = src.Key;
-            while (_decoded.Count > MaxDecoded)
-            {
-                string oldest = _decodedOrder.Dequeue();
-                if (oldest == _lastShownKey) continue; // đang hiện → giữ stream sống
-                if (_decoded.Remove(oldest, out var evicted))
-                    evicted.Stream.Dispose();
-            }
+            TrimDecoded();
             return bmp;
         }
         catch { return null; }
     }
 
-    /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>
-    public BitmapImage? GetRandom(string type)
+    public void Pin(BitmapImage image)
     {
-        if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0)
-        {
-            // fallback: type lạ → lấy bừa 1 gif bất kỳ còn hơn hiện trống
-            var any = _byType.Values.FirstOrDefault(l => l.Count > 0);
-            return any == null ? null : Decode(any[_rng.Next(any.Count)]);
-        }
+        var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
+        if (entry.Key != null) _pins[entry.Key] = _pins.GetValueOrDefault(entry.Key) + 1;
+    }
 
-        if (!_recent.TryGetValue(type!, out var recent))
+    public void Unpin(BitmapImage image)
+    {
+        var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
+        if (entry.Key != null && _pins.TryGetValue(entry.Key, out int count))
+        {
+            if (count <= 1) _pins.Remove(entry.Key); else _pins[entry.Key] = count - 1;
+        }
+        TrimDecoded();
+    }
+
+    private void TrimDecoded()
+    {
+        int attempts = _decodedOrder.Count;
+        while (_decoded.Count > 1 && (_decoded.Count > MaxDecoded || DecodedBytes > MaxDecodedBytes) && attempts-- > 0)
+        {
+            string oldest = _decodedOrder.Dequeue();
+            if (oldest == _lastShownKey || _pins.ContainsKey(oldest)) { _decodedOrder.Enqueue(oldest); continue; }
+            if (_decoded.Remove(oldest, out var evicted)) evicted.Stream.Dispose();
+        }
+    }
+
+    /// <summary>Chọn ngẫu nhiên 1 biến thể của type, tránh lặp 2 biến thể vừa hiện gần nhất.</summary>
+    /// <summary>Nhân vật xuất hiện trong 1 biến thể (theo catalog): ["bubu"], ["dudu"] hoặc cả hai.</summary>
+    private List<string> CharactersOf(string variant)
+        => _catalog.TryGetValue(variant, out var info) ? info.characters : new List<string>();
+
+    /// <summary>
+    /// Chọn tên biến thể theo nhân vật của người gửi: ưu tiên sticker CHỈ có nhân vật của mình,
+    /// rồi tới sticker có cả hai; không bao giờ chọn sticker solo của nhân vật còn lại.
+    /// </summary>
+    public bool HasForCharacter(string type, string character)
+        => _byType.TryGetValue(type, out var list) && list.Any(x =>
+            string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character));
+
+    public string PickVariant(string type, string myCharacter = "")
+    {
+        if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0) return "";
+        if (string.IsNullOrEmpty(myCharacter)) return list[_rng.Next(list.Count)].Variant;
+        var solo = list.Where(x => CharactersOf(x.Variant) is { Count: 1 } c && c[0] == myCharacter).ToList();
+        var pool = solo.Count > 0 ? solo : list.Where(x => CharactersOf(x.Variant).Count >= 2).ToList();
+        return pool.Count > 0 ? pool[_rng.Next(pool.Count)].Variant : "";
+    }
+
+    /// <summary>Như GetRandom nhưng biến thể được lọc theo nhân vật của người gửi.</summary>
+    public BitmapImage? GetRandomForCharacter(string type, string myCharacter)
+    {
+        var variant = PickVariant(type, myCharacter);
+        return string.IsNullOrEmpty(variant) ? null : GetRandom(type, variant, myCharacter);
+    }
+
+    public BitmapImage? GetRandom(string type, string variant = "", string character = "")
+    {
+        if (!_byType.TryGetValue(type ?? "", out var sources)) return null;
+        var list = sources.Where(x => string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character)).ToList();
+        if (list.Count == 0) return null;
+
+        if (!string.IsNullOrEmpty(variant))
+        {
+            var chosen = list.FirstOrDefault(x => string.Equals(x.Variant, variant, StringComparison.Ordinal));
+            return chosen == null ? null : Decode(chosen);
+        }
+        if (!_recent.TryGetValue(type + ":" + character, out var recent))
         {
             recent = new Queue<int>(2);
-            _recent[type!] = recent;
+            _recent[type + ":" + character] = recent;
         }
 
         int idx;
@@ -214,7 +299,8 @@ public sealed class StickerService
         else
         {
             var banned = new HashSet<int>(recent);
-            do { idx = _rng.Next(list.Count); } while (banned.Contains(idx));
+            var eligible = Enumerable.Range(0, list.Count).Where(i => !banned.Contains(i)).ToArray();
+            idx = eligible.Length == 0 ? _rng.Next(list.Count) : eligible[_rng.Next(eligible.Length)];
         }
 
         recent.Enqueue(idx);

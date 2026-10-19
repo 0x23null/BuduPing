@@ -16,3 +16,10 @@ captures/
 .DS_Store
 Thumbs.db
 .idea/
+
+# Generated from the curated Windows GIFs by tools/prepare_assets.py
+android/app/src/main/assets/stickers/
+android/app/src/main/assets/previews/
+windows/BuduPing/Assets/Stickers/catalog.json
+__pycache__/
+.benchmark-baseline/

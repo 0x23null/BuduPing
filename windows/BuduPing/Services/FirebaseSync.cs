@@ -1,231 +1,222 @@
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using BuduPing.Core;
 
 namespace BuduPing.Services;
 
-/// <summary>
-/// Đồng bộ Firebase Realtime Database bằng REST + streaming SSE (KHÔNG dùng Firebase SDK,
-/// KHÔNG polling). Nghe push tại /pairs/{pairId}/inbox, heartbeat presence mỗi 20s.
-/// </summary>
+/// <summary>One SSE inbox stream and one serialized completion writer. No inbox polling.</summary>
 public sealed class FirebaseSync : IDisposable
 {
     private const string BaseUrl = "https://buduping-default-rtdb.asia-southeast1.firebasedatabase.app/";
-    private const int MaxSeenIds = 500;
-
     private readonly string _pairId;
-    private readonly HttpClient _stream; // timeout vô hạn cho SSE
-    private readonly HttpClient _rest;   // cho PUT/DELETE nhanh
-    private CancellationTokenSource? _cts;
-    private Task? _loopTask;
-    private bool _disposed;
-
-    private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
-    private readonly Queue<string> _seenOrder = new();
-
+    private readonly HttpClient _stream = new() { BaseAddress = new Uri(BaseUrl), Timeout = Timeout.InfiniteTimeSpan };
+    private readonly HttpClient _rest = new() { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(15) };
+    private readonly CancellationTokenSource _cts = new();
+    private readonly RecentEventIds _seen = new();
+    private readonly Channel<(PingEvent Ping, string Status)> _completed = Channel.CreateUnbounded<(PingEvent, string)>(
+        new UnboundedChannelOptions { SingleReader = true });
+    private bool _started, _disposed;
+    private int _deferred;
     public event Action<PingEvent>? PingReceived;
 
     public FirebaseSync(string pairId)
     {
         _pairId = pairId;
-        _stream = new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = Timeout.InfiniteTimeSpan };
         _stream.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
-        _rest = new HttpClient { BaseAddress = new Uri(BaseUrl), Timeout = TimeSpan.FromSeconds(15) };
     }
 
     public void Start()
     {
-        if (_loopTask != null) return;
-        _cts = new CancellationTokenSource();
-        _loopTask = Task.Run(() => StreamLoopAsync(_cts.Token));
+        if (_started) return;
+        _started = true;
+        _ = StreamLoopAsync(_cts.Token);
+        _ = CompletionLoopAsync(_cts.Token);
     }
 
-    public void Stop()
-    {
-        try { _cts?.Cancel(); } catch { }
-        try { _stream.CancelPendingRequests(); } catch { } // đánh thức ReadLineAsync đang block
-        _loopTask = null;
-    }
+    public void Stop() { _cts.Cancel(); _stream.CancelPendingRequests(); _completed.Writer.TryComplete(); }
 
-    /// <summary>Vòng lặp SSE: giữ 1 kết nối GET mở, Firebase push event xuống. Tự reconnect với backoff.</summary>
     private async Task StreamLoopAsync(CancellationToken ct)
     {
-        int delayMs = 1000;
-        string url = $"pairs/{_pairId}/inbox.json";
-
+        int delay = 1000;
         while (!ct.IsCancellationRequested)
         {
             try
             {
-                using var resp = await _stream.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct)
-                                             .ConfigureAwait(false);
-                resp.EnsureSuccessStatusCode();
-                delayMs = 1000; // kết nối OK → reset backoff
-
-                using var stream = await resp.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+                using var response = await _stream.GetAsync($"pairs/{_pairId}/inbox.json",
+                    HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
                 using var reader = new StreamReader(stream, Encoding.UTF8);
-
                 string? eventName = null;
-                while (!ct.IsCancellationRequested)
+                var data = new StringBuilder();
+                while (await reader.ReadLineAsync(ct).ConfigureAwait(false) is { } line)
                 {
-                    // ReadLineAsync: block tới khi server push dòng mới / đóng kết nối.
-                    // Stop() gọi CancelPendingRequests() để đánh thức khi thoát.
-                    string? line = await reader.ReadLineAsync().ConfigureAwait(false);
-                    if (line == null) break; // server đóng → reconnect
-
-                    if (line.StartsWith("event:", StringComparison.Ordinal))
-                        eventName = line["event:".Length..].Trim();
+                    if (line.Length == 0)
+                    {
+                        if (eventName is "cancel" or "auth_revoked")
+                            throw new HttpRequestException("Inbox stream permission was revoked.");
+                        if (data.Length > 0) { HandleEvent(eventName, data.ToString()); delay = 1000; }
+                        eventName = null; data.Clear();
+                    }
+                    else if (line.StartsWith("event:", StringComparison.Ordinal)) eventName = line[6..].Trim();
                     else if (line.StartsWith("data:", StringComparison.Ordinal))
                     {
-                        string data = line["data:".Length..].Trim();
-                        HandleSseEvent(eventName, data);
-                        eventName = null;
+                        if (data.Length > 0) data.Append('\n');
+                        data.Append(line[5..].TrimStart());
                     }
-                    // dòng trống = hết 1 message SSE
                 }
             }
-            catch (OperationCanceledException) { break; }
-            catch
-            {
-                // lỗi mạng / server → chờ backoff rồi nối lại (1s → 2s → 4s … tối đa 30s)
-                try { await Task.Delay(delayMs, ct).ConfigureAwait(false); }
-                catch (OperationCanceledException) { break; }
-                delayMs = Math.Min(delayMs * 2, 30_000);
-            }
-        }
-    }
-
-    private void HandleSseEvent(string? eventName, string data)
-    {
-        // keep-alive / cancel / auth_revoked: không có event để hiện
-        if (eventName is not ("put" or "patch")) return;
-        if (string.IsNullOrEmpty(data) || data == "null") return;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(data);
-            var root = doc.RootElement;
-            if (!root.TryGetProperty("path", out var pathEl) ||
-                !root.TryGetProperty("data", out var dataEl))
-                return;
-
-            string path = pathEl.GetString() ?? "";
-            if (dataEl.ValueKind == JsonValueKind.Null) return; // event bị xoá → bỏ qua
-
-            if (eventName == "put")
-            {
-                if (path == "/")
-                {
-                    // snapshot đầy đủ inbox: { eventId: {...}, ... }
-                    if (dataEl.ValueKind == JsonValueKind.Object)
-                        foreach (var prop in dataEl.EnumerateObject())
-                            TryRaisePing(prop.Value, prop.Name);
-                }
-                else
-                {
-                    // path = "/{eventId}", data = 1 event
-                    string id = path.Trim('/');
-                    if (dataEl.ValueKind == JsonValueKind.Object)
-                        TryRaisePing(dataEl, id);
-                }
-            }
-            else // patch: { eventId: {...}, ... }
-            {
-                if (dataEl.ValueKind == JsonValueKind.Object)
-                    foreach (var prop in dataEl.EnumerateObject())
-                        TryRaisePing(prop.Value, prop.Name);
-            }
-        }
-        catch { /* JSON lạ → bỏ qua, giữ stream sống */ }
-    }
-
-    private void TryRaisePing(JsonElement el, string fallbackId)
-    {
-        try
-        {
-            // Id chuẩn để dedupe + xoá inbox PHẢI là Firebase push key (fallbackId:
-            // prop.Name của snapshot / đuôi path của put) — KHÔNG dùng field "id" (UUID)
-            // bên trong body, vì DELETE /inbox/{uuid} không trúng node nào cả.
-            string innerId = el.TryGetProperty("id", out var idEl) && idEl.ValueKind == JsonValueKind.String
-                ? idEl.GetString() ?? ""
-                : "";
-            string id = !string.IsNullOrEmpty(fallbackId) ? fallbackId : innerId;
-            if (string.IsNullOrEmpty(id)) return;
-
-            lock (_seen)
-            {
-                if (!_seen.Add(id)) return; // dedupe theo id
-                _seenOrder.Enqueue(id);
-                while (_seenOrder.Count > MaxSeenIds) _seen.Remove(_seenOrder.Dequeue());
-            }
-
-            static string Str(JsonElement e, string name)
-                => e.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.String
-                    ? p.GetString() ?? "" : "";
-
-            var ping = new PingEvent
-            {
-                Id = id,
-                Type = Str(el, "type") is string t && t.Length > 0 ? t : "love",
-                Text = Str(el, "text"),
-                From = Str(el, "from"),
-                Ts = el.TryGetProperty("ts", out var ts) && ts.ValueKind == JsonValueKind.Number
-                     ? ts.GetInt64() : DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
-            };
-            PingReceived?.Invoke(ping);
-        }
-        catch { /* event hỏng → bỏ qua */ }
-    }
-
-    /// <summary>Xoá event khỏi inbox sau khi đã hiện (fire-and-forget, không block UI).</summary>
-    public void DeleteFromInbox(string eventId)
-    {
-        if (string.IsNullOrEmpty(eventId)) return;
-        _ = Task.Run(async () =>
-        {
-            try { await _rest.DeleteAsync($"pairs/{_pairId}/inbox/{eventId}.json").ConfigureAwait(false); }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
             catch { }
-        });
+            try { await Task.Delay(delay, ct).ConfigureAwait(false); }
+            catch (OperationCanceledException) { break; }
+            delay = Math.Min(delay * 2, 30_000);
+        }
     }
 
-    /// <summary>Ghi nhịp presence: { online: true, ts }. Điện thoại đọc để hiện chấm xanh.</summary>
+    private void HandleEvent(string? name, string json)
+    {
+        if (name is not ("put" or "patch")) return;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            string path = root.GetProperty("path").GetString() ?? "/";
+            var data = root.GetProperty("data");
+            if (data.ValueKind != JsonValueKind.Object) return;
+            if (path == "/")
+                foreach (var prop in data.EnumerateObject()) Raise(prop.Name, prop.Value);
+            else if (path.Trim('/').IndexOf('/') < 0) Raise(path.Trim('/'), data);
+        }
+        catch (JsonException) { }
+        catch (KeyNotFoundException) { }
+    }
+
+    private void Raise(string id, JsonElement data)
+    {
+        if (data.ValueKind != JsonValueKind.Object || id.Length > 120 || id.IndexOfAny(['/', '.', '#', '$', '[', ']']) >= 0) return;
+        static string Str(JsonElement e, string k, int max)
+            => e.TryGetProperty(k, out var p) && p.ValueKind == JsonValueKind.String
+                ? (p.GetString() ?? "")[..Math.Min((p.GetString() ?? "").Length, max)] : "";
+        if (!_seen.TryRemember(id)) return;
+        var ping = new PingEvent
+        {
+            Id = id, Type = Str(data, "type", 24), Text = Str(data, "text", 80),
+            From = Str(data, "from", 24), Variant = Str(data, "variant", 48), Character = Str(data, "character", 8),
+            VariantLocked = data.TryGetProperty("variantLocked", out var locked) && locked.ValueKind is JsonValueKind.True or JsonValueKind.False ? locked.GetBoolean() : null,
+            Ts = data.TryGetProperty("ts", out var ts) && ts.ValueKind == JsonValueKind.Number && ts.TryGetInt64(out var ms) ? ms : 0,
+        };
+        PingReceived?.Invoke(ping);
+    }
+
+    public void Defer(string id)
+    {
+        _seen.Forget(id);
+        Interlocked.Exchange(ref _deferred, 1);
+    }
+
+    public async Task RefreshDeferredAsync()
+    {
+        if (Interlocked.Exchange(ref _deferred, 0) == 0) return;
+        try
+        {
+            using var response = await _rest.GetAsync($"pairs/{_pairId}/inbox.json", _cts.Token).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(_cts.Token).ConfigureAwait(false));
+            if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                foreach (var prop in doc.RootElement.EnumerateObject()) Raise(prop.Name, prop.Value);
+        }
+        catch { Interlocked.Exchange(ref _deferred, 1); }
+    }
+
+    public void Complete(PingEvent ping, string status)
+    {
+        if (!ping.IsLocal) _completed.Writer.TryWrite((ping, status));
+    }
+
+    private async Task CompletionLoopAsync(CancellationToken ct)
+    {
+        try
+        {
+            await foreach (var item in _completed.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            {
+                int delay = 1000;
+                while (!ct.IsCancellationRequested)
+                {
+                    try
+                    {
+                        var changes = new Dictionary<string, object?>
+                        {
+                            [$"inbox/{item.Ping.Id}"] = null,
+                            ["feedback/delivery"] = new
+                            {
+                                eventId = item.Ping.Id, type = item.Ping.Type, status = item.Status,
+                                ts = new Dictionary<string, string> { [".sv"] = "timestamp" },
+                            },
+                        };
+                        using var content = JsonContent(changes);
+                        using var request = new HttpRequestMessage(HttpMethod.Patch, $"pairs/{_pairId}.json") { Content = content };
+                        using var response = await _rest.SendAsync(request, ct).ConfigureAwait(false);
+                        response.EnsureSuccessStatusCode();
+                        break;
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
+                    catch
+                    {
+                        await Task.Delay(delay, ct).ConfigureAwait(false);
+                        delay = Math.Min(30_000, delay * 2);
+                    }
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public async Task<bool> ReplyAsync(PingEvent ping, string variant = "")
+    {
+        try
+        {
+            using var content = JsonContent(new
+            {
+                id = Guid.NewGuid().ToString("N"), replyTo = ping.Id, type = "hug", variant = variant,
+                ts = new Dictionary<string, string> { [".sv"] = "timestamp" },
+            });
+            using var response = await _rest.PutAsync($"pairs/{_pairId}/feedback/reply.json", content, _cts.Token).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     public async Task PutPresenceAsync(CancellationToken ct = default)
     {
         try
         {
-            string json = JsonSerializer.Serialize(new
-            {
-                online = true,
-                ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            });
-            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            using var resp = await _rest.PutAsync($"pairs/{_pairId}/presence.json", content, ct).ConfigureAwait(false);
-            resp.EnsureSuccessStatusCode();
-        }
-        catch { /* mạng lỗi → lần heartbeat sau thử lại */ }
-    }
-
-    /// <summary>Thoát hẳn: xoá presence để điện thoại thấy chấm xám.</summary>
-    public async Task DeletePresenceAsync()
-    {
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            await _rest.DeleteAsync($"pairs/{_pairId}/presence.json", cts.Token).ConfigureAwait(false);
+            using var content = JsonContent(new { online = true, ts = new Dictionary<string, string> { [".sv"] = "timestamp" } });
+            using var response = await _rest.PutAsync($"pairs/{_pairId}/presence.json", content, ct).ConfigureAwait(false);
         }
         catch { }
     }
 
+    public async Task DeletePresenceAsync()
+    {
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            using var response = await _rest.DeleteAsync($"pairs/{_pairId}/presence.json", timeout.Token).ConfigureAwait(false);
+        }
+        catch { }
+    }
+
+    private static StringContent JsonContent(object value) => new(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json");
+
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
-        Stop();
-        _stream.Dispose();
-        _rest.Dispose();
-        _cts?.Dispose();
+        _disposed = true; Stop(); _stream.Dispose(); _rest.Dispose();
+        // CTS may still be observed by the async loops; disposal is unnecessary after cancellation.
     }
 }

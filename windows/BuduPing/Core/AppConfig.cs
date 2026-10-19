@@ -11,6 +11,16 @@ public sealed class AppConfig
     public string PairCode { get; set; } = "";
     public bool SoundOn { get; set; } = true;
     public bool Autostart { get; set; } = false;
+    public bool HasSeenSetup { get; set; }
+    public bool DiscreetMode { get; set; }
+    public bool HideMessageText { get; set; }
+    public bool ReducedMotion { get; set; }
+    public string MonitorDevice { get; set; } = "";
+    public string Corner { get; set; } = "BottomRight";
+    /// <summary>Nhân vật của người dùng máy này: "bubu" | "dudu" | "" (không lọc). Lọc sticker khi gửi đáp lại.</summary>
+    public string MyCharacter { get; set; } = "";
+    public double OverlayScale { get; set; } = 1.0;
+    public int PresentationSchema { get; set; } = 2;
 }
 
 public static class AppConfigStore
@@ -29,7 +39,19 @@ public static class AppConfigStore
             if (File.Exists(Path_))
             {
                 var cfg = JsonSerializer.Deserialize<AppConfig>(File.ReadAllText(Path_));
-                if (cfg != null && PairCode.IsValid(cfg.PairCode)) return cfg;
+                if (cfg != null && PairCode.IsValid(cfg.PairCode))
+                {
+                    using var doc = JsonDocument.Parse(File.ReadAllText(Path_));
+                    if (!doc.RootElement.TryGetProperty(nameof(AppConfig.PresentationSchema), out var schema) || schema.GetInt32() < 2)
+                    {
+                        cfg.MyCharacter = cfg.MyCharacter switch { "bubu" => "dudu", "dudu" => "bubu", _ => "" };
+                        cfg.OverlayScale = cfg.OverlayScale < .9 ? .6 : cfg.OverlayScale > 1.1 ? 1.3 : 1;
+                        cfg.PresentationSchema = 2;
+                        Save(cfg);
+                    }
+                    cfg.OverlayScale = PresentationPolicy.NormalizeSize(cfg.OverlayScale);
+                    return cfg;
+                }
             }
         }
         catch { /* file hỏng → gen lại */ }
@@ -64,7 +86,7 @@ public static class AppConfigStore
             using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
             if (key == null) return;
             if (cfg.Autostart)
-                key.SetValue("BuduPing", $"\"{ExePath()}\"");
+                key.SetValue("BuduPing", $"\"{ExePath()}\" --autostart");
             else if (key.GetValue("BuduPing") != null)
                 key.DeleteValue("BuduPing");
         }

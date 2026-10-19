@@ -1,72 +1,61 @@
 package com.buduping.app
 
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.database.ServerValue
-import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.*
 import java.util.UUID
 
-/**
- * Thin wrapper around Firebase Realtime Database.
- * RTDB URL comes from google-services.json; the project lives in asia-southeast1.
- */
+data class DesktopState(val online: Boolean = false, val ts: Long = 0)
+data class PairFeedback(
+    val eventId: String = "", val status: String = "", val replyId: String = "",
+    val replyType: String = "hug", val replyTs: Long = 0, val replyVariant: String = "",
+)
+
 class FirebaseRepo {
+    private val db get() = database
 
-    private val db: FirebaseDatabase by lazy { FirebaseDatabase.getInstance() }
-
-    /**
-     * Push one ping event into /pairs/{pairId}/inbox.
-     * Fire-and-forget: the write runs off the UI thread, onError only fires on failure.
-     */
-    fun sendPing(
-        pairId: String,
-        type: String,
-        text: String,
-        from: String,
-        onError: (Exception) -> Unit = {},
-    ) {
-        val event = mapOf(
-            "id" to UUID.randomUUID().toString(),
-            "type" to type,
-            "text" to text,
-            "from" to from,
-            "ts" to ServerValue.TIMESTAMP,
-        )
-        db.getReference("pairs").child(pairId).child("inbox")
-            .push()
-            .setValue(event)
-            .addOnFailureListener { onError(it) }
+    fun sendPing(pairId: String, type: String, text: String, from: String, variant: String = "", character: String = "", variantLocked: Boolean = true,
+                 onResult: (String, Exception?) -> Unit): String {
+        val node = db.getReference("pairs").child(pairId).child("inbox").push()
+        val key = requireNotNull(node.key)
+        node.setValue(mapOf("id" to UUID.randomUUID().toString(), "type" to type,
+            "text" to text.take(80), "from" to from.take(24), "variant" to variant, "character" to character, "variantLocked" to variantLocked,
+            "ts" to ServerValue.TIMESTAMP)) { error, _ -> onResult(key, error?.toException()) }
+        return key
     }
 
-    /**
-     * Observe /pairs/{pairId}/presence.
-     * The desktop app writes {online: true, ts: <epoch ms>} and heartbeats it every ~20s.
-     * Online = online flag set AND ts fresh within 60 seconds (desktop running, tray included).
-     */
-    fun observePresence(pairId: String, onChange: (online: Boolean) -> Unit): ValueEventListener {
-        val ref = db.getReference("pairs").child(pairId).child("presence")
-        val listener = object : ValueEventListener {
-            override fun onDataChange(snapshot: DataSnapshot) {
-                val onlineFlag = snapshot.child("online").getValue(Boolean::class.java) ?: false
-                val ts = snapshot.child("ts").getValue(Long::class.java) ?: 0L
-                onChange(onlineFlag && System.currentTimeMillis() - ts < PRESENCE_FRESH_MS)
+    fun observe(pairId: String, onPresence: (DesktopState) -> Unit, onFeedback: (PairFeedback) -> Unit,
+                onConnected: (Boolean) -> Unit, onClockOffset: (Long) -> Unit,
+                onError: () -> Unit): () -> Unit {
+        val subscriptions = mutableListOf<Pair<DatabaseReference, ValueEventListener>>()
+        fun listen(ref: DatabaseReference, block: (DataSnapshot) -> Unit) {
+            val listener = object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) = block(snapshot)
+                override fun onCancelled(error: DatabaseError) = onError()
             }
-
-            override fun onCancelled(error: DatabaseError) {
-                onChange(false)
-            }
+            ref.addValueEventListener(listener)
+            subscriptions += ref to listener
         }
-        ref.addValueEventListener(listener)
-        return listener
-    }
-
-    fun stopObserving(pairId: String, listener: ValueEventListener) {
-        db.getReference("pairs").child(pairId).child("presence")
-            .removeEventListener(listener)
+        val pair = db.getReference("pairs").child(pairId)
+        listen(pair.child("presence")) { onPresence(DesktopState(
+            it.child("online").getValue(Boolean::class.java) ?: false,
+            it.child("ts").getValue(Long::class.java) ?: 0)) }
+        listen(pair.child("feedback")) {
+            onFeedback(PairFeedback(
+                eventId = it.child("delivery/eventId").getValue(String::class.java) ?: "",
+                status = it.child("delivery/status").getValue(String::class.java) ?: "",
+                replyId = it.child("reply/id").getValue(String::class.java) ?: "",
+                replyVariant = it.child("reply/variant").getValue(String::class.java) ?: "",
+                replyType = it.child("reply/type").getValue(String::class.java) ?: "hug",
+                replyTs = it.child("reply/ts").getValue(Long::class.java) ?: 0))
+        }
+        listen(db.getReference(".info/connected")) { onConnected(it.getValue(Boolean::class.java) == true) }
+        listen(db.getReference(".info/serverTimeOffset")) { onClockOffset(it.getValue(Long::class.java) ?: 0) }
+        return { subscriptions.forEach { (ref, listener) -> ref.removeEventListener(listener) } }
     }
 
     companion object {
-        private const val PRESENCE_FRESH_MS = 60_000L
+        // One initialization per process; pending writes survive an Activity/process restart.
+        private val database: FirebaseDatabase by lazy {
+            FirebaseDatabase.getInstance().apply { setPersistenceEnabled(true) }
+        }
     }
 }

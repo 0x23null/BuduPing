@@ -9,10 +9,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.buduping.app.ui.BuduPingTheme
 import com.buduping.app.ui.HomeScreen
-import com.buduping.app.ui.NameScreen
 import com.buduping.app.ui.PairScreen
 
 class MainActivity : ComponentActivity() {
+    private var foreground by mutableStateOf(false)
+    override fun onStart() { super.onStart(); foreground = true }
+    override fun onStop() { foreground = false; super.onStop() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -23,15 +25,10 @@ class MainActivity : ComponentActivity() {
             BuduPingTheme {
                 var screen by remember { mutableStateOf(initialScreen(prefs)) }
                 when (screen) {
-                    Screen.Name -> NameScreen(
-                        onDone = { name ->
+                    Screen.Name, Screen.Pair -> PairScreen(
+                        initialName = prefs.senderName,
+                        onPaired = { name, pairId ->
                             prefs.senderName = name
-                            screen = Screen.Pair
-                        },
-                    )
-
-                    Screen.Pair -> PairScreen(
-                        onPaired = { pairId ->
                             prefs.pairId = pairId
                             screen = Screen.Home
                         },
@@ -40,6 +37,7 @@ class MainActivity : ComponentActivity() {
                     Screen.Home -> HomeScreen(
                         prefs = prefs,
                         repo = repo,
+                        isForeground = foreground,
                         onUnpair = {
                             prefs.clearPair()
                             screen = Screen.Pair

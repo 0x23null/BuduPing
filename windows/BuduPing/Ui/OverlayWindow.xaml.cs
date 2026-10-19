@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -29,14 +30,25 @@ public partial class OverlayWindow : Window
     #endregion
 
     private const int MaxQueue = 2;
-    private const int MaxParticles = 24;   // pool hạt cố định
+    private const int MaxParticles = PresentationPolicy.MaxParticles;   // pool hạt cố định
     private const double ComboWindowSec = 2.0;  // tính từ lần chạm GẦN NHẤT (v0.1.0 tính từ lúc bắt đầu hiện → spam là kẹt hàng đợi)
     private const double InterruptAfterSec = 1.0; // khác cảm xúc mà cái đang hiện đã chiếu quá 1s → nhường chỗ ngay
     private const double ShowSeconds = 2.8;     // v0.1.0 để 5s → spam sticker phải chờ nhau rất lâu
 
     private readonly StickerService _stickers;
     private readonly App _app;
-    private readonly Queue<PingEvent> _queue = new();
+    private readonly PingBacklog _queue = new();
+    private readonly DispatcherTimer _idleTimer;
+    private readonly DispatcherTimer _summaryTimer;
+    private readonly Stack<Particle> _recycled = new();
+    private readonly Stack<TextBlock> _glyphPool = new();
+    private PingEvent? _current;
+    private bool _peeking;
+    private int _generation;
+    private int _expiredCount;
+    internal Point LastBurstCenter { get; private set; }
+    public PingEvent? LastPing { get; private set; }
+    public int PendingCount => _queue.Count;
     private readonly DispatcherTimer _hideTimer;
     private readonly Random _rng = new();
 
@@ -47,6 +59,12 @@ public partial class OverlayWindow : Window
     private DateTime _windowStartUtc;
     private DateTime _lastTapUtc;
     private bool _lv3Done;
+    private long _lastVisualBeat = -PresentationPolicy.VisualGapMs;
+    private long _lastVariantBeat = -PresentationPolicy.VariantGapMs;
+    private readonly Stopwatch _feedbackClock = Stopwatch.StartNew();
+    internal int ActiveComboCount => _activeCount;
+    internal int ActiveParticleCount => _particles.Count;
+    internal bool IsPeeking => _peeking;
 
     // Pool hạt: animate 1 vòng CompositionTarget.Rendering, hết hạt thì unsubscribe → idle 0% CPU
     private readonly List<Particle> _particles = new(MaxParticles);
@@ -57,10 +75,10 @@ public partial class OverlayWindow : Window
         public FrameworkElement El = null!;
         public TranslateTransform Move = new();
         public ScaleTransform Scale = new();
-        public double Vx, Vy, Gravity;
+        public double Vx, Vy, Gravity, X, Y;
         public double Age, Life = 1, FadeIn = 0.12;
         public double SwayAmp, SwayFreq, Phase;
-        public double StartScale = 1, EndScale = 1;
+        public double StartScale = 1, EndScale = 1, Unit = 1;
     }
 
     public OverlayWindow(StickerService stickers, App app)
@@ -72,6 +90,23 @@ public partial class OverlayWindow : Window
         _hideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ShowSeconds) };
         _hideTimer.Tick += (_, _) => HideCurrent();
 
+        _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        _idleTimer.Tick += (_, _) =>
+        {
+            _idleTimer.Stop();
+            if (_isShowing) return;
+            _stickers.ReleaseDecoded();
+            MemoryTrim.TrimIdle(_stickers.DecodedBytes);
+        };
+        _idleTimer.Start();
+        _summaryTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(300) };
+        _summaryTimer.Tick += (_, _) =>
+        {
+            _summaryTimer.Stop();
+            if (_expiredCount == 0 || _app.Config.DiscreetMode || _isShowing) return;
+            int count = _expiredCount; _expiredCount = 0;
+            Display(new PingEvent { Type = "love", Text = $"Có {count} lời thương từ lúc bạn vắng mặt.", IsLocal = true });
+        };
         Loaded += (_, _) => PlaceBottomRight();
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) =>
             Dispatcher.Invoke(PlaceBottomRight);
@@ -88,129 +123,253 @@ public partial class OverlayWindow : Window
 
     private void PlaceBottomRight()
     {
-        var wa = SystemParameters.WorkArea; // trừ taskbar
-        Left = wa.Right - Width - 16;
-        Top = wa.Bottom - Height - 16;
+        ContentPanel.VerticalAlignment = _app.Config.Corner.StartsWith("Top", StringComparison.Ordinal)
+            ? VerticalAlignment.Top : VerticalAlignment.Bottom;
+        // Scale artwork only: small stickers must not make message text unreadable.
+        double size = PresentationPolicy.ArtworkScale * PresentationPolicy.NormalizeSize(_app.Config.OverlayScale);
+        StickerCard.LayoutTransform = new ScaleTransform(size, size);
+        Width = 520;
+        Height = 580;
+        DisplayPlacement.Place(this, _app.Config.MonitorDevice, _app.Config.Corner, _app.Config.OverlayScale);
     }
 
-    // ================= Luồng event: queue + combo =================
+    public void RefreshPlacement() => PlaceBottomRight();
 
-    /// <summary>Nhận event từ Firebase (đã marshal về UI thread). Gọi DeleteFromInbox ngay khi nhận.</summary>
+    public void ApplyPreferences()
+    {
+        PlaceBottomRight();
+        if (_app.Config.DiscreetMode || _app.Config.HideMessageText)
+        {
+            Bubble.Visibility = Visibility.Collapsed; BubbleTail.Visibility = Visibility.Collapsed;
+        }
+        if (_app.Config.DiscreetMode && _isShowing && !_peeking)
+        {
+            _peeking = true; ClearParticles(); PlayEntrance();
+        }
+        if (_app.Config.ReducedMotion) ClearParticles();
+    }
+
+    public void ResetPair()
+    {
+        _generation++;
+        _queue.Clear(); LastPing = null; _current = null;
+        _hideTimer.Stop(); _idleTimer.Stop();
+        _isShowing = false; _isHiding = false;
+        Visibility = Visibility.Collapsed;
+        ClearParticles();
+        SetAnimationSource(StickerImage, null);
+        _stickers.ReleaseDecoded();
+    }
+
+    public void ShowPending()
+    {
+        if (_app.Config.DiscreetMode || _app.Config.HideMessageText) return;
+        if (_peeking) { _isShowing = false; _isHiding = false; _hideTimer.Stop(); }
+        if (!_isShowing && _queue.Take() is { } ping) Display(ping);
+        else if (!_isShowing) _app.RefreshDeferred();
+    }
+
+    private static string EmojiFor(string type) => type switch
+    {
+        "miss" => "💭", "love" => "🥰", "hug" => "🤗", "kiss" => "😘", "tease" => "😜",
+        "angry" => "😠", "sad" => "😢", "sorry" => "🙏", "funny" => "😂", "cheer" => "🎉",
+        "hungry" => "😋", "goodnight" => "🌙", _ => "❤",
+    };
+
     public void ShowPing(PingEvent ping)
     {
-        _app.DeleteFromInbox(ping.Id); // đã nhận → xoá khỏi inbox, reconnect không hiện lại
-
-        var now = DateTime.UtcNow;
-        bool sameType = string.Equals(ping.Type, _activeType, StringComparison.OrdinalIgnoreCase);
-        if (_isShowing && !_isHiding && sameType &&
-            (now - _lastTapUtc).TotalSeconds <= ComboWindowSec)
+        if (PingPolicy.IsExpired(ping, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()))
         {
-            // Combo: cùng type, chạm liên tiếp → gộp + nới giờ ẩn, không xếp hàng
+            _app.CompletePing(ping, "expired");
+            _expiredCount++; _summaryTimer.Stop(); _summaryTimer.Start();
+            return;
+        }
+        _idleTimer.Stop();
+        if (!ping.IsLocal) LastPing = ping;
+        if (PresentationPolicy.ShouldPeek(ping, _app.Config.DiscreetMode, _app.Config.HideMessageText))
+        {
+            // Tests/reply confirmations follow the same privacy rule; never change preferences.
+            // Only remote events stay pending for the explicit "open pending" action.
+            if (!ping.IsLocal) Enqueue(ping);
+            if (!_isShowing || ping.IsLocal) Display(ping, peek: true);
+            return;
+        }
+        var now = DateTime.UtcNow;
+        if (_isShowing && !_isHiding && !_peeking && _current != null &&
+            PingPolicy.CanCombine(_current, ping, (now - _lastTapUtc).TotalSeconds))
+        {
             _activeCount++;
             _lastTapUtc = now;
             ApplyComboVisual();
+            _app.CompletePing(ping, "displayed");
             RestartHideTimer();
             return;
         }
-
-        if (_isShowing && !_isHiding && !sameType &&
+        // Never interrupt an explicit message; it needs enough time to be read.
+        if (_isShowing && !_isHiding && !_peeking && _queue.Count == 0 &&
+            string.IsNullOrWhiteSpace(_current?.Text) &&
+            !string.Equals(ping.Type, _activeType, StringComparison.OrdinalIgnoreCase) &&
             (now - _windowStartUtc).TotalSeconds >= InterruptAfterSec)
         {
-            // Khác cảm xúc, cái đang hiện đã chiếu >1s → nhường chỗ ngay, bỏ hàng đợi cũ
-            _queue.Clear();
-            Display(ping);
-            return;
+            Display(ping); return;
         }
-
-        if (_isShowing)
-        {
-            if (_queue.Count >= MaxQueue) _queue.Dequeue(); // đầy → bỏ cái cũ nhất
-            _queue.Enqueue(ping);
-            return;
-        }
-
+        if (_isShowing) { Enqueue(ping); return; }
         Display(ping);
     }
 
-    private void Display(PingEvent ping)
+    private void Enqueue(PingEvent ping)
     {
-        _isShowing = true;
-        _isHiding = false;
-        _activeType = ping.Type;
-        _activeCount = 1;
-        _lv3Done = false;
-        _windowStartUtc = DateTime.UtcNow;
-        _lastTapUtc = _windowStartUtc;
+        if (!_queue.TryEnqueue(ping, out var replaced)) { _app.DeferPing(ping); return; }
+        if (replaced != null) _app.CompletePing(replaced, "superseded");
+    }
 
-        var bmp = _stickers.GetRandom(ping.Type);
-        if (bmp != null) ImageBehavior.SetAnimatedSource(StickerImage, bmp);
-
-        string header = $"💌 {StickerService.LabelFor(ping.Type)}";
-        if (!string.IsNullOrWhiteSpace(ping.From)) header += $" · từ {ping.From.Trim()}";
-        BubbleHeader.Text = header;
+    private void Display(PingEvent ping, bool peek = false)
+    {
+        _generation++;
+        var displayWatch = Stopwatch.StartNew();
+        _idleTimer.Stop();
+        _current = ping;
+        _peeking = peek;
+        _isShowing = true; _isHiding = false;
+        _activeType = ping.Type; _activeCount = 1; _lv3Done = false;
+        _windowStartUtc = DateTime.UtcNow; _lastTapUtc = _windowStartUtc;
+        ClearParticles();
+        var bmp = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
+        if (bmp == null)
+        {
+            _isShowing = false;
+            _app.CompletePing(ping, "unavailable");
+            return;
+        }
+        SetAnimationSource(StickerImage, bmp);
+        NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
+        BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
+        BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
-        if (text.Length > 80) text = text[..80];
-        if (text.Length == 0)
-        {
-            Bubble.Visibility = Visibility.Collapsed;
-            BubbleTail.Visibility = Visibility.Collapsed;
-        }
-        else
-        {
-            BubbleText.Text = text;
-            Bubble.Visibility = Visibility.Visible;
-            BubbleTail.Visibility = Visibility.Visible;
-        }
-
+        bool hiddenText = _app.Config.HideMessageText && text.Length > 0;
+        BubbleText.Text = hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)];
+        Bubble.Visibility = !peek && text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+        BubbleTail.Visibility = Bubble.Visibility;
+        var glowColor = ping.Type is "miss" or "sad" or "goodnight" or "sorry"
+            ? Color.FromArgb(90, 150, 190, 255) : ping.Type is "hug" or "cheer" or "hungry"
+            ? Color.FromArgb(90, 255, 185, 115) : Color.FromArgb(90, 255, 175, 205);
+        StickerGlow.Fill = new RadialGradientBrush(glowColor, Colors.Transparent);
         ComboBadge.Visibility = Visibility.Collapsed;
+        StickerScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        StickerScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
         StickerScale.ScaleX = StickerScale.ScaleY = 1;
-        StickerShake.X = StickerShake.Y = 0;
-
+        StickerShake.BeginAnimation(TranslateTransform.XProperty, null);
+        StickerShake.BeginAnimation(TranslateTransform.YProperty, null);
+        StickerTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        StickerShake.X = StickerShake.Y = StickerTilt.Angle = 0;
         Visibility = Visibility.Visible;
         PlaceBottomRight();
+        UpdateLayout(); // The first burst needs the arranged sticker position, not its unmeasured origin.
         PlayEntrance();
-
-        BurstFor(ping.Type, StickerCenter(), density: 1);
-        _app.PlayPop();
+        if (!peek)
+        {
+            if (!_app.Config.ReducedMotion)
+            {
+                int generation = _generation;
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (generation != _generation || _peeking || _app.Config.ReducedMotion) return;
+                    ApplyMoodPose(ping.Type);
+                    BurstFor(ping.Type, StickerCenter(), 1);
+                }, DispatcherPriority.Loaded);
+            }
+            _app.PlayPop();
+            // One callback after composition starts, not when the event merely enters a queue.
+            EventHandler? rendered = null;
+            rendered = (_, _) =>
+            {
+                CompositionTarget.Rendering -= rendered;
+                if (_current?.Id != ping.Id || _peeking) return;
+                _app.CompletePing(ping, hiddenText ? "received" : "displayed");
+                MemoryTrim.Record("display", _stickers.DecodedBytes, displayWatch.Elapsed.TotalMilliseconds);
+            };
+            CompositionTarget.Rendering += rendered;
+        }
         RestartHideTimer();
+    }
+
+    private void SetAnimationSource(Image image, BitmapImage? source)
+    {
+        var old = ImageBehavior.GetAnimatedSource(image) as BitmapImage;
+        if (ReferenceEquals(old, source)) return;
+        ImageBehavior.SetAnimatedSource(image, null);
+        if (old != null) _stickers.Unpin(old);
+        if (source != null) { _stickers.Pin(source); ImageBehavior.SetAnimatedSource(image, source); }
+    }
+
+    private void NormalizeSticker(int width, int height)
+    {
+        var info = _stickers.LastInfo;
+        var b = info?.bounds;
+        double x = 0, y = 0, w = width, h = height;
+        if (b?.Length == 4 && b[2] > b[0] && b[3] > b[1])
+        { x = b[0]; y = b[1]; w = b[2] - b[0]; h = b[3] - b[1]; }
+        double scale = 244 / Math.Max(w, h);
+        StickerImage.Width = width * scale; StickerImage.Height = height * scale;
+        Canvas.SetLeft(StickerImage, (264 - w * scale) / 2 - x * scale);
+        Canvas.SetTop(StickerImage, 254 - h * scale - y * scale);
+    }
+
+    private void ApplyMoodPose(string type)
+    {
+        if (_app.Config.ReducedMotion) return;
+        if (type is "angry" or "tease") { ShakeSticker(); return; }
+        double angle = type switch { "miss" => -9, "goodnight" => 10, "kiss" => -7, _ => 0 };
+        if (angle != 0)
+            StickerTilt.BeginAnimation(RotateTransform.AngleProperty,
+                new DoubleAnimation(angle, TimeSpan.FromMilliseconds(type == "goodnight" ? 800 : 240))
+                    { AutoReverse = true, EasingFunction = new SineEase() });
+        if (type is "hug" or "cheer" or "funny")
+            StickerShake.BeginAnimation(TranslateTransform.YProperty,
+                new DoubleAnimation(-12, TimeSpan.FromMilliseconds(160))
+                    { AutoReverse = true, EasingFunction = new SineEase() });
     }
 
     private void ApplyComboVisual()
     {
-        var center = StickerCenter();
-
-        // Càng bấm càng TO: +7% mỗi tap, trần 1.85x (trước đây chỉ nhảy cỡ ở mốc Lv2/Lv3)
-        PopSticker(Math.Min(1 + 0.07 * (_activeCount - 1), 1.85));
-
-        // Badge xN hiện từ tap thứ 2
         ComboBadgeText.Text = "x" + _activeCount;
         ComboBadge.Visibility = Visibility.Visible;
-
-        // Mỗi 4 tap: đổi sang biến thể KHÁC cùng cảm xúc cho đỡ nhàm
-        if (_activeCount % 4 == 0)
+        // Audio and motion respond to this received beat. Excess events update the counter,
+        // never schedule a backlog of sounds, decodes or animation clocks.
+        _app.PlayPop(_activeCount);
+        if (_app.Config.ReducedMotion) return;
+        long now = _feedbackClock.ElapsedMilliseconds;
+        if (now - _lastVisualBeat < PresentationPolicy.VisualGapMs) return;
+        _lastVisualBeat = now;
+        bool accent = PresentationPolicy.IsAccent(_activeCount);
+        ApplyMoodPose(_activeType);
+        if (_activeCount % 4 == 0 && _current != null && !_current.HasFixedVariant &&
+            now - _lastVariantBeat >= PresentationPolicy.VariantGapMs)
         {
-            var bmp = _stickers.GetRandom(_activeType);
-            if (bmp != null) ImageBehavior.SetAnimatedSource(StickerImage, bmp);
+            _lastVariantBeat = now;
+            var variant = _stickers.GetRandom(_activeType, character: _current.Character);
+            if (variant != null) { SetAnimationSource(StickerImage, variant); NormalizeSticker(variant.PixelWidth, variant.PixelHeight); }
         }
-
-        if (_activeCount >= 5 && !_lv3Done)
+        // At most 1.20x. A tap gives a brief squash/stretch, not permanent giant growth.
+        double target = PresentationPolicy.ComboScale(_activeCount);
+        foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            StickerScale.BeginAnimation(prop, new DoubleAnimation(target + .055, target, TimeSpan.FromMilliseconds(190))
+                { EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut } });
+        if (accent)
         {
-            // Lv3: mini sticker chạy nối đuôi + mưa hạt dày — vẫn chỉ quanh sticker
-            _lv3Done = true;
-            SpawnMiniParade();
-            BurstFor(_activeType, center, density: 3);
+            BurstFor(_activeType, StickerCenter(), 1);
+            if (_activeCount >= 5 && !_lv3Done) { _lv3Done = true; SpawnMiniParade(); }
         }
-        else
-        {
-            BurstFor(_activeType, center, density: _activeCount >= 3 ? 2 : 1);
-        }
-        _app.PlayPop(_activeCount); // thang nốt leo theo độ dài combo
+        foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            BadgeScale.BeginAnimation(prop, new DoubleAnimation(accent ? .8 : .95, 1, TimeSpan.FromMilliseconds(180)));
     }
 
     private void RestartHideTimer()
     {
         _hideTimer.Stop();
-        _hideTimer.Start(); // tự ẩn sau 5s kể từ lần chạm cuối
+        _hideTimer.Interval = TimeSpan.FromSeconds(_peeking ? 1.8 :
+            !string.IsNullOrWhiteSpace(_current?.Text) ? Math.Clamp(2.8 + _current.Text.Length * 0.035, 3.5, 6) : ShowSeconds);
+        _hideTimer.Start();
     }
 
     private void HideCurrent()
@@ -219,83 +378,95 @@ public partial class OverlayWindow : Window
         _isHiding = true;
         _hideTimer.Stop();
 
-        var sb = new Storyboard();
-        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(180));
-        Storyboard.SetTarget(fade, ContentPanel);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(180))
+        int generation = _generation;
+        var fade = new DoubleAnimation(0, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180));
+        var slide = new DoubleAnimation(30, TimeSpan.FromMilliseconds(_app.Config.ReducedMotion ? 1 : 180))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
-        Storyboard.SetTarget(slide, ContentSlide);
-        Storyboard.SetTargetProperty(slide, new PropertyPath(TranslateTransform.YProperty));
-        sb.Children.Add(fade);
-        sb.Children.Add(slide);
-        sb.Completed += (_, _) =>
+        fade.Completed += (_, _) =>
         {
+            if (generation != _generation) return;
             Visibility = Visibility.Collapsed;
             _isShowing = false;
             _isHiding = false;
             ClearParticles();
             // Nhả frame GIF đã decode + trim working set → idle RAM thấp
-            ImageBehavior.SetAnimatedSource(StickerImage, null);
-            _stickers.ReleaseDecoded();
-            MemoryTrim.Request();
-            if (_queue.Count > 0) Display(_queue.Dequeue());
+            SetAnimationSource(StickerImage, null);
+            if (!_app.Config.DiscreetMode && !_app.Config.HideMessageText && _queue.Take() is { } next) Display(next);
+            else
+            {
+                _idleTimer.Start();
+                if (!_app.Config.DiscreetMode && !_app.Config.HideMessageText) _app.RefreshDeferred();
+            }
         };
-        sb.Begin();
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, slide);
+        ContentPanel.BeginAnimation(OpacityProperty, fade);
     }
 
     // ================= Animation vào/ra =================
 
     private void PlayEntrance()
     {
-        // Spring scale 0.6 → 1.08 → 1.0 trong ~260ms + fade + trượt lên
-        ContentScale.ScaleX = ContentScale.ScaleY = 0.6;
-        ContentSlide.Y = 24;
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, null);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentPanel.BeginAnimation(OpacityProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        BubbleScale.ScaleX = BubbleScale.ScaleY = 1;
+        ContentTilt.Angle = 0;
+        if (_peeking || _app.Config.ReducedMotion)
+        {
+            ContentScale.ScaleX = ContentScale.ScaleY = _peeking ? 0.42 : 1;
+            ContentSlide.Y = 0; ContentPanel.Opacity = 1;
+            return;
+        }
+        ContentScale.ScaleX = ContentScale.ScaleY = 0.55;
+        ContentSlide.Y = 36;
         ContentPanel.Opacity = 0;
 
-        var sb = new Storyboard();
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-        AddScaleKeyframes(sb, ContentScale, ScaleTransform.ScaleXProperty, ease);
-        AddScaleKeyframes(sb, ContentScale, ScaleTransform.ScaleYProperty, ease);
+        StartScaleKeyframes(ContentScale, ScaleTransform.ScaleXProperty, ease);
+        StartScaleKeyframes(ContentScale, ScaleTransform.ScaleYProperty, ease);
 
         var fade = new DoubleAnimation(1, TimeSpan.FromMilliseconds(200));
-        Storyboard.SetTarget(fade, ContentPanel);
-        Storyboard.SetTargetProperty(fade, new PropertyPath(OpacityProperty));
-        var rise = new DoubleAnimation(0, TimeSpan.FromMilliseconds(260)) { EasingFunction = ease };
-        Storyboard.SetTarget(rise, ContentSlide);
-        Storyboard.SetTargetProperty(rise, new PropertyPath(TranslateTransform.YProperty));
-        sb.Children.Add(fade);
-        sb.Children.Add(rise);
-        sb.Begin();
+        var rise = new DoubleAnimation(0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
+        var tilt = new DoubleAnimation(-3, 0, TimeSpan.FromMilliseconds(680)) { EasingFunction = ease };
+        ContentPanel.BeginAnimation(OpacityProperty, fade);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, rise);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, tilt);
+        if (Bubble.Visibility == Visibility.Visible)
+        {
+            foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+            {
+                var bubble = new DoubleAnimation(.6, 1, TimeSpan.FromMilliseconds(550))
+                    { BeginTime = TimeSpan.FromMilliseconds(100), EasingFunction = new BackEase { Amplitude = 1.4, EasingMode = EasingMode.EaseOut } };
+                BubbleScale.BeginAnimation(property, bubble);
+            }
+        }
     }
 
-    private static void AddScaleKeyframes(Storyboard sb, ScaleTransform target,
+    private static void StartScaleKeyframes(ScaleTransform target,
         DependencyProperty prop, IEasingFunction ease)
     {
         var anim = new DoubleAnimationUsingKeyFrames();
         anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.08,
-            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(150)), ease));
-        anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.0,
-            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(260)), ease));
-        Storyboard.SetTarget(anim, target);
-        Storyboard.SetTargetProperty(anim, new PropertyPath(prop));
-        sb.Children.Add(anim);
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(270)), ease));
+        anim.KeyFrames.Add(new EasingDoubleKeyFrame(.98, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(460)), ease));
+        anim.KeyFrames.Add(new EasingDoubleKeyFrame(1.0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(680)), ease));
+        target.BeginAnimation(prop, anim);
     }
 
     private void PopSticker(double toScale)
     {
-        var sb = new Storyboard();
         var ease = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 1.6 };
         foreach (var prop in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
         {
             var anim = new DoubleAnimation(toScale, TimeSpan.FromMilliseconds(200)) { EasingFunction = ease };
-            Storyboard.SetTarget(anim, StickerScale);
-            Storyboard.SetTargetProperty(anim, new PropertyPath(prop));
-            sb.Children.Add(anim);
+            StickerScale.BeginAnimation(prop, anim);
         }
-        sb.Begin();
     }
 
     private void ShakeSticker()
@@ -305,23 +476,20 @@ public partial class OverlayWindow : Window
         for (int i = 0; i < xs.Length; i++)
             anim.KeyFrames.Add(new LinearDoubleKeyFrame(xs[i],
                 KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(60 * (i + 1)))));
-        Storyboard.SetTarget(anim, StickerShake);
-        Storyboard.SetTargetProperty(anim, new PropertyPath(TranslateTransform.XProperty));
-        var sb = new Storyboard();
-        sb.Children.Add(anim);
-        sb.Begin();
+        StickerShake.BeginAnimation(TranslateTransform.XProperty, anim);
     }
 
     private Point StickerCenter()
     {
-        try
+        // Layout coordinates stay stable while the entrance scales/slides the content.
+        var point = StickerStage.TransformToAncestor(ContentPanel).Transform(new Point(132, 110));
+        for (Visual? visual = ContentPanel; visual != null && !ReferenceEquals(visual, Root);
+             visual = VisualTreeHelper.GetParent(visual) as Visual)
         {
-            var p = StickerImage.TranslatePoint(
-                new Point(StickerImage.ActualWidth / 2, StickerImage.ActualHeight * 0.4), Root);
-            if (!double.IsNaN(p.X) && !double.IsInfinity(p.X)) return p;
+            var offset = VisualTreeHelper.GetOffset(visual);
+            point.Offset(offset.X, offset.Y);
         }
-        catch { }
-        return new Point(Width / 2, Height - 140);
+        return point;
     }
 
     // ================= Hạt cục bộ (pool 24) =================
@@ -332,15 +500,22 @@ public partial class OverlayWindow : Window
         {
             // pool đầy → tái chế hạt cũ nhất
             var old = _particles[0];
-            ParticleCanvas.Children.Remove(old.El);
+            Recycle(old);
             _particles.RemoveAt(0);
         }
-        var p = new Particle { El = el };
+        var p = _recycled.Count > 0 ? _recycled.Pop() : new Particle();
+        p.El = el; p.Vx = p.Vy = p.Gravity = p.X = p.Y = p.Age = p.SwayAmp = p.SwayFreq = p.Phase = 0;
+        p.Life = p.StartScale = p.EndScale = 1; p.FadeIn = 0.12;
+        p.Unit = PresentationPolicy.ArtworkScale * PresentationPolicy.NormalizeSize(_app.Config.OverlayScale);
+        var center = StickerCenter();
+        x = center.X + (x - center.X) * p.Unit;
+        y = center.Y + (y - center.Y) * p.Unit;
+        p.Move.X = p.Move.Y = 0; p.Scale.ScaleX = p.Scale.ScaleY = p.Unit;
         var tg = new TransformGroup();
-        tg.Children.Add(p.Move);
         tg.Children.Add(p.Scale);
+        tg.Children.Add(p.Move);
         el.RenderTransform = tg;
-        el.RenderTransformOrigin = new Point(0.5, 0.5);
+        el.RenderTransformOrigin = new Point(0, 0);
         el.Opacity = 0;
         Canvas.SetLeft(el, x);
         Canvas.SetTop(el, y);
@@ -358,6 +533,7 @@ public partial class OverlayWindow : Window
 
     private void ClearParticles()
     {
+        foreach (var p in _particles) Recycle(p);
         ParticleCanvas.Children.Clear();
         _particles.Clear();
         CompositionTarget.Rendering -= OnTick;
@@ -375,30 +551,49 @@ public partial class OverlayWindow : Window
             p.Age += dt;
             if (p.Age >= p.Life)
             {
-                ParticleCanvas.Children.Remove(p.El);
+                Recycle(p);
                 _particles.RemoveAt(i);
                 continue;
             }
             p.Vy += p.Gravity * dt;
-            double px = p.Vx * p.Age + Math.Sin(p.Age * p.SwayFreq + p.Phase) * p.SwayAmp;
-            double py = p.Vy * p.Age + 0.5 * p.Gravity * p.Age * p.Age;
-            p.Move.X = px;
-            p.Move.Y = py;
+            p.X += p.Vx * dt; p.Y += p.Vy * dt;
+            double px = p.X + Math.Sin(p.Age * p.SwayFreq + p.Phase) * p.SwayAmp;
+            double py = p.Y;
+            p.Move.X = px * p.Unit;
+            p.Move.Y = py * p.Unit;
             double t = p.Age / p.Life;
             p.El.Opacity = t < p.FadeIn ? t / p.FadeIn : 1 - (t - p.FadeIn) / (1 - p.FadeIn);
             double s = p.StartScale + (p.EndScale - p.StartScale) * t;
-            p.Scale.ScaleX = p.Scale.ScaleY = s;
+            p.Scale.ScaleX = p.Scale.ScaleY = s * p.Unit;
         }
 
         if (_particles.Count == 0)
             CompositionTarget.Rendering -= OnTick; // hết hạt → dừng tick, idle 0% CPU
     }
 
-    private static TextBlock Glyph(string s, double size, double opacity = 1)
-        => new() { Text = s, FontSize = size, Opacity = opacity, IsHitTestVisible = false };
+    private void Recycle(Particle p)
+    {
+        ParticleCanvas.Children.Remove(p.El);
+        if (p.El is Image image) { SetAnimationSource(image, null); image.Source = null; }
+        if (p.El is TextBlock glyph && _glyphPool.Count < MaxParticles) _glyphPool.Push(glyph);
+        if (_recycled.Count < MaxParticles) _recycled.Push(p);
+    }
+
+    private TextBlock Glyph(string s, double size, double opacity = 1)
+    {
+        var glyph = _glyphPool.Count > 0 ? _glyphPool.Pop() : new TextBlock { IsHitTestVisible = false };
+        glyph.Text = s; glyph.FontSize = size; glyph.Opacity = opacity;
+        return glyph;
+    }
+
+    private static readonly Geometry HeartGeometry = Geometry.Parse("M 10,18 C -7,6 1,-5 10,3 C 19,-5 27,6 10,18 Z");
+    private static FrameworkElement HeartGlyph(double size, string color)
+        => new System.Windows.Shapes.Path { Data = HeartGeometry, Stretch = Stretch.Uniform,
+            Width = size, Height = size, Fill = (Brush)new BrushConverter().ConvertFromString(color)!, IsHitTestVisible = false };
 
     private void BurstFor(string type, Point c, int density)
     {
+        LastBurstCenter = c;
         var kind = StickerService.ParticleKindFor(type);
         switch (kind)
         {
@@ -408,7 +603,7 @@ public partial class OverlayWindow : Window
                 int n = 6 * density;
                 for (int i = 0; i < n; i++)
                 {
-                    var p = AddParticle(Glyph(hearts[_rng.Next(hearts.Length)], 18 + _rng.NextDouble() * 10),
+                    var p = AddParticle(HeartGlyph(18 + _rng.NextDouble() * 10, "#ED719D"),
                         c.X - 60 + _rng.NextDouble() * 120, c.Y - 40 + _rng.NextDouble() * 80);
                     p.Vx = (_rng.NextDouble() - 0.5) * 30;
                     p.Vy = -(50 + _rng.NextDouble() * 45);
@@ -430,7 +625,7 @@ public partial class OverlayWindow : Window
                 string[] hearts = { "🤍", "💗", "💭" };
                 for (int i = 0; i < 6 * density; i++)
                 {
-                    var p = AddParticle(Glyph(hearts[_rng.Next(hearts.Length)], 14 + _rng.NextDouble() * 8),
+                    var p = AddParticle(HeartGlyph(14 + _rng.NextDouble() * 8, "#EAA7C1"),
                         c.X - 80 + _rng.NextDouble() * 160, c.Y - 100 - _rng.NextDouble() * 40);
                     p.Vx = (_rng.NextDouble() - 0.5) * 16;
                     p.Vy = 26 + _rng.NextDouble() * 22; // rơi chậm như ngóng
@@ -451,7 +646,7 @@ public partial class OverlayWindow : Window
                 p.Life = 0.9; p.StartScale = 0.35; p.EndScale = 1.5; p.FadeIn = 0.1;
                 for (int i = 0; i < 4 * density; i++)
                 {
-                    var q = AddParticle(Glyph("🧡", 16), c.X - 50 + _rng.NextDouble() * 100, c.Y);
+                    var q = AddParticle(HeartGlyph(16, "#EBA361"), c.X - 50 + _rng.NextDouble() * 100, c.Y);
                     q.Vy = -(40 + _rng.NextDouble() * 30); q.Life = 1.2;
                     q.SwayAmp = 10; q.SwayFreq = 3; q.Phase = _rng.NextDouble() * 6.28;
                 }
@@ -569,15 +764,17 @@ public partial class OverlayWindow : Window
     /// <summary>Lv3: 3 mini sticker chạy nối đuôi ở mép dưới overlay (cục bộ).</summary>
     private void SpawnMiniParade()
     {
-        for (int i = 0; i < 3; i++)
+        var center = StickerCenter();
+        for (int i = 0; i < 2; i++)
         {
-            var bmp = _stickers.GetRandom(_activeType);
+            var bmp = ImageBehavior.GetAnimatedSource(StickerImage);
             var img = new Image { Width = 68, Height = 68, IsHitTestVisible = false };
             RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-            if (bmp != null) ImageBehavior.SetAnimatedSource(img, bmp);
-            var p = AddParticle(img, -70 - i * 85, Height - 100);
-            p.Vx = 150; p.Vy = 0;
-            p.Life = 2.8; p.FadeIn = 0.08;
+            // Reuse one static frame; three extra GIF decoders would inflate combo peak memory.
+            if (bmp != null) img.Source = bmp;
+            var p = AddParticle(img, center.X - 100 + i * 140, center.Y + 60);
+            p.Vx = (i == 0 ? -1 : 1) * 18; p.Vy = -45;
+            p.Life = .9; p.FadeIn = 0.08;
             p.SwayAmp = 6; p.SwayFreq = 6; p.Phase = i * 2; // tưng tưng khi chạy
         }
     }

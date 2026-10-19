@@ -20,7 +20,36 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_PAIR, "") ?: ""
         set(value) = sp.edit().putString(KEY_PAIR, value).apply()
 
+    var pendingKey: String
+        get() = sp.getString("pending_key", "") ?: ""
+        set(value) = sp.edit().putString("pending_key", value).apply()
+    var deliveryStatus: String
+        get() = sp.getString("delivery_status", "") ?: ""
+        set(value) = sp.edit().putString("delivery_status", value).apply()
+    var lastReplyId: String
+        get() = sp.getString("reply_" + pairId, "") ?: ""
+        set(value) = sp.edit().putString("reply_" + pairId, value).apply()
+    var favorites: List<String>
+        get() = (sp.getString("favorites", "hug,love,miss,kiss") ?: "").split(',').filter { it.isNotBlank() }
+        set(value) = sp.edit().putString("favorites", value.distinct().take(4).joinToString(",")).apply()
+
+    // Preserve the chosen avatar on upgrade: 0.2.1 stored the reversed names.
+    init {
+        if (sp.getInt("character_schema", 0) < 2) {
+            val old = sp.getString(KEY_CHARACTER, null)
+            val corrected = when (old) { "bubu" -> "dudu"; "dudu" -> "bubu"; else -> null }
+            sp.edit().putString(KEY_CHARACTER, corrected).putInt("character_schema", 2).apply()
+        }
+    }
+
+    /** Bubu = white panda; Dudu = brown bear. Null means not chosen yet. */
+    var myCharacter: String?
+        get() = sp.getString(KEY_CHARACTER, null)
+        set(value) = if (value == null) sp.edit().remove(KEY_CHARACTER).apply()
+            else sp.edit().putString(KEY_CHARACTER, value).apply()
+
     fun clearPair() {
+        pendingKey = ""; deliveryStatus = ""
         sp.edit().remove(KEY_PAIR).apply()
     }
 
@@ -46,5 +75,6 @@ class Prefs(context: Context) {
     companion object {
         private const val KEY_NAME = "sender_name"
         private const val KEY_PAIR = "pair_id"
+        private const val KEY_CHARACTER = "my_character"
     }
 }

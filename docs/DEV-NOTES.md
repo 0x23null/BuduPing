@@ -1,7 +1,15 @@
+## Current handoff — 0.2.2
+
+Read [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md) first. It corrects older character-name assumptions: **Bubu is white; Dudu is brown**. Preserve the shipped 0.2.1 memory engine.
+
 # BuduPing — Ghi chú phát triển (đọc file này trước khi sửa code)
 
 Tài liệu bàn giao ngữ cảnh cho bất kỳ ai (người hoặc AI) tiếp tục phát triển BuduPing.
-Cập nhật lần cuối: 2026-10-19, trong lúc chuẩn bị v0.1.2.
+Cập nhật: 2026-10-19. v0.1.2 đã phát hành; v0.1.3 xuất hiện trên main trong lúc phát triển.
+Bản hoàn thiện UI nằm trên nhánh `codex/buduping-0.2`, phiên bản 0.2.1: đọc [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md)
+để biết code đã thay đổi, hợp đồng feedback, kết quả kiểm chứng và phần cần test máy thật.
+Tag 0.2.0 được tiến trình khác tạo trong lúc kiểm tra; 0.2.1 bổ sung sửa lỗi từ ảnh native.
+Không dùng các dòng lịch sử "đang làm" bên dưới để suy ra trạng thái release.
 
 ## 1. Tổng quan
 
@@ -45,19 +53,17 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 
 ## 4. Build / CI / Release (đã tự động hoá hoàn toàn)
 
-- 3 workflow trong `.github/workflows/`: `build-apk.yml`, `build-windows.yml` (chạy khi
-  push nhánh), `release.yml` (chạy khi push tag `v*`, build cả 2 + đính kèm
-  `BuduPing.apk` + `BuduPing.exe` vào GitHub Release của tag đó).
+- 4 workflow trong `.github/workflows/`: `build-apk.yml`, `build-windows.yml`,
+  `ui-review.yml` (emulator Android) và `release.yml` (build cả hai nền tảng).
 - Mỗi workflow có bước cuối chạy `.github/scripts/report-ci.sh`: commit trạng thái +
   đuôi log build vào nhánh **`ci-reports`** (`reports/<tên>.md`). Nhờ vậy kết quả build
-  đọc được qua git thuần — khi build đỏ, đọc file report tương ứng trên nhánh
-  `ci-reports` trước khi đoán lỗi. Quyền git là deploy key (chỉ git, không API/Actions).
-- Quy trình ra bản mới: sửa → commit → push `main` → `git tag vX.Y.Z` → push tag →
-  chờ 4 report (apk, windows, release-apk, release-windows) cùng `status: success`
-  trên nhánh `ci-reports` → gửi user link `releases/tag/vX.Y.Z`.
-- Android không build được ở máy dev Linux (sandbox chặn loopback TCP cho Gradle
-  daemon) — GitHub Actions là cổng kiểm chứng duy nhất cho APK. WPF thì biên dịch
-  kiểm tra được bằng `dotnet build -c Release -p:EnableWindowsTargeting=true`.
+  đọc được qua git thuần — khi build đỏ, đọc report đúng SHA trước khi đoán lỗi.
+- Từ 0.2.0: đổi root `VERSION` trên main sẽ kích hoạt release. Hai build phải cùng
+  thành công trước khi job publish tạo tag và đính kèm cả `BuduPing.apk` + `BuduPing.exe`.
+  Push tag `v*` và workflow_dispatch vẫn hỗ trợ; tag phải khớp VERSION.
+- GitHub Actions kiểm chứng native build và thu ảnh UI. Có thể chạy core checks,
+  asset checks tại máy dev; giới hạn môi trường khác nhau nên không xem build local
+  thành công là đủ cho cả hai nền tảng.
 
 ## 5. Nhật ký lỗi từ test thực tế (đừng lặp lại)
 
@@ -72,7 +78,7 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 | APK không có icon | Manifest không khai báo icon | Thêm bộ icon Bubu (mọi density + adaptive) |
 | CI APK đỏ 11s (trước đó) | `gradle-wrapper.jar` tự lắp bị hỏng (thiếu class) | Thay jar chính thức Gradle 8.7 (kiểm chứng sha256) |
 
-### v0.1.1 → v0.1.2 (đang làm)
+### v0.1.1 → v0.1.2 (đã phát hành)
 - User: mọi thứ hơi nhỏ → overlay phóng to ~1,3× (sticker 200→264 DIP, cửa sổ 380×580).
 - User (dark mode): sticker chìm trên nền desktop tối → thêm quầng sáng hồng sau sticker
   + `DropShadowEffect` màu hồng sáng thay bóng tối; `BitmapScalingMode=HighQuality`.
@@ -90,7 +96,7 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
   `tease` mới có 1 mẫu (`tease-02`); một file cười lớn bị xếp nhầm vào cheer đã chuyển
   về `funny-03`; `cheer-03` là GIF ngang nên nhân vật hơi nhỏ khi hiện.
 
-### v0.1.2 → v0.1.3 (đang làm)
+### v0.1.2 → v0.1.3 (đã phát hành)
 - User: tiếng pop vẫn không tạo cảm giác spam → **thay toàn bộ engine tiếng**:
   bỏ SoundPlayer (chỉ 1 tiếng tại một thời điểm, spam là cụt) → `SoundService`
   với **thang 10 nốt** `pop01..pop10.wav` (cao dần theo độ dài combo), mỗi nốt một
@@ -125,11 +131,20 @@ Path gốc: `/pairs/{pairId}`, `pairId` = mã cặp đã chuẩn hoá, 8 ký t�
 - Đặt tên `<type>-NN.gif` trong thư mục đúng cảm xúc; file được nhúng tự động nhờ glob
   trong csproj, không cần sửa code khi thêm sticker.
 
-## 8. Việc còn mở (chưa làm, để sau v0.1.2)
+## 8. Việc còn mở (cập nhật 0.2.0)
 
-- Hotkey trả lời nhanh trên PC (Ctrl+Alt+Space), chế độ xem khi fullscreen,
+- Hotkey Ctrl+Alt+Space đã có trong 0.2.0; còn tự phát hiện fullscreen,
   giờ yên lặng (quiet hours), nhúng font Baloo 2 (hiện dùng font hệ thống).
 - Đánh giá lại RAM sau v0.1.2 bằng số đo của user; nếu vẫn chưa đạt kỳ vọng
   "siêu nhẹ" thì cân nhắc viết lại lớp overlay bằng Win32/GDI thuần.
 - Sticker nguồn độ phân giải cao hơn (hiện đa số 250–320px, phóng to trên màn
   HiDPI vẫn hơi mềm).
+
+## 9. Bàn giao 0.2.0
+
+- Báo cáo chi tiết: [DEVELOPMENT-REPORT-0.2.0.md](DEVELOPMENT-REPORT-0.2.0.md).
+- Quan trọng: cache nay chỉ nhả sau idle 20s; không gọi EmptyWorkingSet/GC cưỡng bức.
+- Nguồn sticker chuẩn duy nhất: Windows Assets/Stickers. Chạy `python tools/prepare_assets.py` trước cả hai build.
+- Inbox chỉ xoá sau khi hiển thị hoặc sau quyết định expired/superseded; completion PATCH và delivery status đi cùng nhau.
+- Có hotkey/tray đáp lại và feedback Android. Không có notification nền Android.
+- UI Android theo bố cục prototype 4×3, không có ô gợi ý vàng/gợi ý theo giờ.

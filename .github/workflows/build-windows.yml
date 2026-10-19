@@ -6,6 +6,9 @@ on:
       - 'windows/**'
       - '.github/workflows/build-windows.yml'
       - '.github/scripts/report-ci.sh'
+      - 'tools/**'
+      - 'tests/**'
+      - 'global.json'
   workflow_dispatch:
 
 permissions:
@@ -20,26 +23,94 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Prepare shared sticker catalog and thumbnails
+        working-directory: ${{ github.workspace }}
+        run: |
+          python -m pip install -r tools/requirements-assets.txt
+          python tools/prepare_assets.py
+          python -m unittest discover -s tests/assets -v
+
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+
+      - name: Verify delivery queue and pairing contract
+        run: dotnet run --project ../../tests/BuduPing.CoreChecks -c Release
 
       - name: Restore
         run: dotnet restore
 
       - name: Publish single-file exe
         id: publish
-        run: >
-          dotnet publish -c Release -r win-x64 --self-contained true
-          /p:PublishSingleFile=true
-          /p:IncludeNativeLibrariesForSelfExtract=true
-          -o publish
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Render native settings and overlay without a Firebase connection
+        shell: pwsh
+        run: |
+          $target = Join-Path $env:RUNNER_TEMP 'buduping-ui'
+          $process = Start-Process -FilePath './publish/BuduPing.exe' -ArgumentList @('--ui-review', $target) -PassThru
+          if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'UI review timed out' }
+          if ($process.ExitCode -ne 0) { throw 'UI review process failed' }
+          if (-not (Test-Path (Join-Path $target 'settings-top.png'))) { throw 'Missing native screenshot' }
+          if (-not (Test-Path (Join-Path $target 'overlay-combo.png'))) { throw 'Missing overlay screenshot' }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: BuduPing-windows-ui-review
+          path: ${{ runner.temp }}/buduping-ui
+
+      - name: Check out v0.2.1 for the memory comparison
+        uses: actions/checkout@v4
+        with:
+          ref: v0.2.1
+          path: .benchmark-baseline
+
+      - name: Prepare the identical offline benchmark harness
+        working-directory: ${{ github.workspace }}
+        run: |
+          python tools/prepare_memory_baseline.py .benchmark-baseline
+          python .benchmark-baseline/tools/prepare_assets.py
+          dotnet publish .benchmark-baseline/windows/BuduPing -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "$env:RUNNER_TEMP/buduping-baseline"
+
+      - name: Compare native memory under the same workload
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:RUNNER_TEMP 'buduping-memory'
+          $before = Join-Path $env:RUNNER_TEMP 'buduping-baseline/BuduPing.exe'
+          $after = (Resolve-Path './publish/BuduPing.exe').Path
+          foreach ($entry in @(@{Name='before';Exe=$before}, @{Name='after';Exe=$after})) {
+            $target = Join-Path $root $entry.Name
+            $process = Start-Process -FilePath $entry.Exe -ArgumentList @('--memory-review', $target) -PassThru
+            if (-not $process.WaitForExit(180000)) { $process.Kill(); throw 'Memory review timed out' }
+            if ($process.ExitCode -ne 0) { throw ('Memory review failed: ' + $entry.Name) }
+            if (-not (Test-Path (Join-Path $target 'memory.json'))) { throw 'Missing memory measurements' }
+          }
+          python ../../tools/compare_memory.py $root
+          Copy-Item (Join-Path $root 'comparison.md') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-comparison.md')
+          Copy-Item (Join-Path $root 'after/memory.json') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-after.json')
+          Copy-Item (Join-Path $root 'before/memory.json') (Join-Path $env:RUNNER_TEMP 'buduping-ui/memory-before.json')
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: BuduPing-memory-review
+          path: ${{ runner.temp }}/buduping-memory
 
       - name: Report CI result
         if: always()
         shell: bash
-        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ steps.publish.outcome }}" ""
+        env:
+          CI_UI_DIR: ${{ runner.temp }}/buduping-ui
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/report-ci.sh" windows "${{ job.status }}" "$RUNNER_TEMP/build.log"
 
       - name: Upload BuduPing.exe
         uses: actions/upload-artifact@v4
