@@ -1,10 +1,13 @@
 package com.buduping.app.ui
 
+import android.Manifest
 import android.content.Context
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
@@ -21,6 +24,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -67,8 +72,22 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var comboCount by remember { mutableIntStateOf(0) }
     var lastTap by remember { mutableLongStateOf(0L) }
     val bursts = remember { mutableStateMapOf<String, Int>() }
+    // Notification permission, asked properly once (Android 13+). Denied?
+    // Settings has a re-enable row. Without it a hug-back only shows in-app.
+    var notifGranted by remember { mutableStateOf(ReplyNotifier.isGranted(context)) }
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notifGranted = granted
+    }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 && !notifGranted && !prefs.notifAsked) {
+            prefs.notifAsked = true
+            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    val foregroundNow by rememberUpdatedState(isForeground)
     LaunchedEffect(lastTap) { if (lastTap > 0) { delay(2_000); comboCount = 0 } }
-    val comboProgress by animateFloatAsState((comboCount / 5f).coerceIn(0f, 1f), tween(250), label = "combo")
+    val comboProgress by animateFloatAsState((comboCount / 8f).coerceIn(0f, 1f),
+        spring(dampingRatio = 0.6f, stiffness = 220f), label = "combo")
     var catalogError by remember { mutableStateOf(false) }
     val catalog by produceState<List<StickerVariant>>(emptyList()) {
         value = withContext(Dispatchers.IO) {
@@ -85,8 +104,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     val age = now + offset - desktop.ts
     val online = connected && desktop.online && age in -5_000L..60_000L
 
-    DisposableEffect(pairId, isForeground) {
-        val stop = if (isForeground) repo.observe(pairId,
+    DisposableEffect(pairId) {
+        val stop = repo.observe(pairId,
             onPresence = { desktop = it }, onConnected = { connected = it }, onClockOffset = { offset = it },
             onFeedback = { feedback ->
                 if (feedback.eventId == pendingKey && pendingKey.isNotBlank()) {
@@ -95,12 +114,16 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 if (feedback.replyId.isNotBlank() && feedback.replyId != prefs.lastReplyId) {
                     prefs.lastReplyId = feedback.replyId
                     if (System.currentTimeMillis() + offset - feedback.replyTs in -5_000L..600_000L) {
-                        replyType = feedback.replyType; replyVariant = feedback.replyVariant
-                        (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
-                            VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
+                        if (foregroundNow) {
+                            replyType = feedback.replyType; replyVariant = feedback.replyVariant
+                            (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
+                                VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
+                        } else {
+                            ReplyNotifier.show(context, feedback.replyType)
+                        }
                     }
                 }
-            }, onError = { status = "permission_error"; connected = false }) else { {} }
+            }, onError = { status = "permission_error"; connected = false })
         onDispose { stop() }
     }
 
@@ -132,7 +155,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
 
     val ordered = remember(favorites) { EMOTIONS.sortedBy { e -> favorites.indexOf(e.type).let { if (it < 0) 100 else it } } }
     val summary = remember(funTick) { prefs.funToday().take(3) }
-    Scaffold(modifier = Modifier.testTag("homeScreen"), topBar = {
+    Scaffold(modifier = Modifier.testTag("homeScreen"), containerColor = Color(0xFF251812), topBar = {
         TopAppBar(title = { Text("BuduPing", style = MaterialTheme.typography.headlineSmall) }, actions = {
             val connectionLabel = if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
             Box(Modifier.size(32.dp).semantics { contentDescription = connectionLabel }, contentAlignment = Alignment.Center) {
@@ -141,7 +164,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             IconButton(onClick = { settings = true }) { Icon(Icons.Default.Settings, "Cài đặt") }
         })
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding)
+            .background(Brush.verticalGradient(listOf(Color(0xFF251812), Color(0xFF180F0A))))
+            .padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 AssistChip(onClick = { unpair = true }, label = { Text(PairCode.format(pairId)) })
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -153,20 +178,33 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 }
             }
             if (comboCount > 0) {
-            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+            val level = if (comboCount >= 8) 4 else if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
+            val levelName = listOf("Nhẹ nhàng", "Ấm áp", "Nồng nhiệt", "Bùng cháy")[level - 1]
+            val moodLabel = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
+            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                 Column(Modifier.padding(14.dp, 12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        val label = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
-                        val level = if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
-                        Text("$label · Lv$level",
-                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("$moodLabel · $levelName",
+                            style = MaterialTheme.typography.labelLarge, fontFamily = BalooFamily,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text("Lv$level", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.clip(RoundedCornerShape(50))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFF77CA6), Color(0xFFFFB35C))))
+                            .padding(horizontal = 10.dp, vertical = 3.dp)) {
+                            Text("x$comboCount", style = MaterialTheme.typography.labelLarge,
+                                fontFamily = BalooFamily, color = Color.White)
+                        }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { comboProgress }, modifier = Modifier.fillMaxWidth().height(5.dp),
-                        trackColor = MaterialTheme.colorScheme.primaryContainer)
+                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.08f))) {
+                        Box(Modifier.fillMaxWidth(comboProgress).fillMaxHeight().clip(RoundedCornerShape(50))
+                            .background(Brush.horizontalGradient(listOf(Color(0xFFF77CA6), Color(0xFFFFB35C)))))
+                    }
                 }
             }
             }

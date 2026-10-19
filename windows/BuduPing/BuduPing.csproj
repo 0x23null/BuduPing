@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>0.2.6</Version>
+    <Version>0.3.0</Version>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>BuduPing</AssemblyName>
     <RootNamespace>BuduPing</RootNamespace>
@@ -23,6 +23,7 @@
   <ItemGroup>
     <!-- Short PCM cues embedded: no runtime extraction or media framework. -->
     <EmbeddedResource Include="Assets\Sounds\*.wav" />
+    <EmbeddedResource Include="Assets\Emoji\*.png" />
     <!-- Cute rounded font for the message bubble (Baloo 2, OFL, has Vietnamese). -->
     <Resource Include="Assets\Fonts\Baloo2.ttf" />
     <EmbeddedResource Include="Assets\tray.ico" />

@@ -64,7 +64,7 @@
             <!-- Full transparent background: no card plate and no glow disc behind
                  the sticker. The buddy sits directly on the desktop; only the
                  sticker's own soft shadow remains for separation. -->
-            <Border x:Name="StickerCard" CornerRadius="26" Padding="18,14,18,16" HorizontalAlignment="Center"
+            <Border x:Name="StickerCard" CornerRadius="26" Padding="18,14,18,0" HorizontalAlignment="Center"
                     Background="Transparent" BorderThickness="0">
             <Grid HorizontalAlignment="Center">
                 <Ellipse x:Name="StickerGlow" Width="330" Height="330" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -98,7 +98,6 @@
                 </Border>
             </Grid>
             </Border>
-            <Rectangle Height="10" Fill="Transparent"/>
         </StackPanel>
     </Grid>
 </Window>

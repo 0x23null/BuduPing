@@ -119,7 +119,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: "BuduPing ${{ needs.version.outputs.tag }} — colorful sender badge in the bubble"
+          name: "BuduPing ${{ needs.version.outputs.tag }} — color emoji, perched sticker, phone notifications and a cuter app"
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |

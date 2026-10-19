@@ -34,7 +34,9 @@ public static class DisplayPlacement
         int w = (int)Math.Round(window.Width * factor), h = (int)Math.Round(window.Height * factor);
         int gap = (int)(16 * factor);
         int x = corner.EndsWith("Left", StringComparison.Ordinal) ? d.Left + gap : d.Right - w - gap;
-        int y = corner.StartsWith("Top", StringComparison.Ordinal) ? d.Top + gap : d.Bottom - h - gap;
+        // Bottom corners perch ON the work-area edge (the taskbar's top), no
+        // vertical gap — the buddy sits on the taskbar like a desktop pet.
+        int y = corner.StartsWith("Top", StringComparison.Ordinal) ? d.Top + gap : d.Bottom - h;
         SetWindowPos(new WindowInteropHelper(window).Handle, IntPtr.Zero, Math.Max(d.Left, x), Math.Max(d.Top, y),
             Math.Min(w, d.Right - d.Left), Math.Min(h, d.Bottom - d.Top), 0x0010 | 0x0004);
     }
@@ -53,7 +55,7 @@ public static class DisplayPlacement
         int w = (int)Math.Round(window.Width * factor), h = (int)Math.Round(window.Height * factor);
         int visible = (int)(w * 0.58);
         int x = d.Right - visible;
-        int y = d.Bottom - h - (int)(8 * factor);
+        int y = d.Bottom - h;
         SetWindowPos(new WindowInteropHelper(window).Handle, IntPtr.Zero, x, Math.Max(d.Top, y), w, h, 0x0010 | 0x0004);
     }
 

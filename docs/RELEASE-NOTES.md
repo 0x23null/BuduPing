@@ -1,10 +1,13 @@
-BuduPing 0.2.6 — icon người gửi trong bong bóng có màu, dễ nhìn
+BuduPing 0.3.0 — emoji có màu, sticker đậu trên taskbar, điện thoại có thông báo + giao diện cute hơn
 
 MÁY TÍNH (Windows)
-- Icon cạnh tên người gửi trong bong bóng lời nhắn giờ là huy hiệu sáng: mặt nhân vật của người gửi (cắt riêng phần đầu cho to) đặt trên đĩa gradient hồng sáng — phía Dudu mặt nâu đậm cũng nhìn rõ, không còn là một đốm đen trên nền bong bóng tối.
-- Icon tim dự phòng (khi không rõ người gửi) cũng chuyển sang gradient hồng với tim trắng.
+- Emoji trong bong bóng giờ HIỆN ĐÚNG MÀU: trước đây Windows vẽ emoji dạng nét đen (giới hạn của WPF, không phải lỗi máy bạn) — nay emoji được thay bằng hình màu như các app chat.
+- Sticker đậu sát trên taskbar như thú cưng để bàn: bỏ toàn bộ khoảng hở dưới chân sticker (trước đây cộng dồn tới ~50px nên nhìn chênh hẳn lên).
 
 ĐIỆN THOẠI (Android)
-- Không đổi tính năng; tăng số phiên bản đi kèm bản PC. (Bài kiểm tra giao diện được cập nhật theo thiết kế bỏ dòng trạng thái từ 0.2.4.)
+- Thông báo khi được ôm đáp lại: app xin quyền thông báo đàng hoàng và báo ngay cả khi bạn không mở app (trước đây chỉ rung khi đang mở app). Tắt/bật lại trong Cài đặt.
+- Giao diện cute hơn: mỗi cảm xúc một màu pastel riêng, ô bo tròn hơn, bấm nảy hơn; bỏ chấm hồng dưới hàng cảm xúc đã ghim (thay bằng viền gradient hồng-cam khi ghim).
+- Spam đã tay hơn: mỗi lần chạm bay lên 3 trái tim, sticker nảy lên; thanh level làm mới với dải màu gradient và cấp độ Nhẹ nhàng → Ấm áp → Nồng nhiệt → Bùng cháy (x8).
+- Cài đặt hiện đúng phiên bản thật của app (trước ghi cứng 0.2.0).
 
 Cài đè lên bản cũ, giữ nguyên ghép đôi và cài đặt.

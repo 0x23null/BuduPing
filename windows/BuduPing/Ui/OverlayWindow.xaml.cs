@@ -280,12 +280,12 @@ public partial class OverlayWindow : Window
         ClearParticles();
         SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
-        BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
+        EmojiArt.ApplyTo(BubbleFrom, string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim(), 15);
         UpdateBubbleAvatar(ping.Character);
         BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
         bool hiddenText = _app.Config.HideMessageText && text.Length > 0;
-        BubbleText.Text = hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)];
+        EmojiArt.ApplyTo(BubbleText, hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)]);
         Bubble.Visibility = !peek && text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         BubbleTail.Visibility = Bubble.Visibility;
         var glowColor = ping.Type is "miss" or "sad" or "goodnight" or "sorry"
@@ -371,7 +371,7 @@ public partial class OverlayWindow : Window
         double scale = 244 / Math.Max(w, h);
         StickerImage.Width = width * scale; StickerImage.Height = height * scale;
         Canvas.SetLeft(StickerImage, (264 - w * scale) / 2 - x * scale);
-        Canvas.SetTop(StickerImage, 254 - h * scale - y * scale);
+        Canvas.SetTop(StickerImage, 264 - h * scale - y * scale);
     }
 
     private void ApplyMoodPose(string type)
