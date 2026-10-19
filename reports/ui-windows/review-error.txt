@@ -1,0 +1,2 @@
+System.InvalidOperationException: 200-tap spam did not remain bounded.
+   at BuduPing.App.<>c__DisplayClass33_0.<<RenderUiReview>b__0>d.MoveNext() in D:\a\BuduPing\BuduPing\windows\BuduPing\App.xaml.cs:line 161
