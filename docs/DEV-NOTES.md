@@ -1,4 +1,4 @@
-## Current handoff — 0.2.3
+## Current handoff — 0.2.3 (đang phát triển, chưa đổi `VERSION`)
 
 Đọc mục này trước, rồi [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md). **Bubu là gấu trắng; Dudu là gấu nâu.** Giữ nguyên engine RAM của 0.2.1.
 

@@ -1,9 +1,12 @@
-# BuduPing 0.2.3
+# BuduPing 0.2.2
 
-- **PC đáp lại đủ 12 cảm xúc kèm lời nhắn.** `Ctrl+Alt+Space`, menu tray hoặc nút trong cài đặt mở bảng chọn; Enter vẫn gửi Ôm như cũ, Esc đóng. Ô cảm xúc mờ đi nếu nhân vật đã chọn chưa có sticker.
-- **Điện thoại nhận đáp lại** với tên nhân vật gửi, lời nhắn (nếu có) và rung theo mẫu riêng từng cảm xúc.
-- **Widget màn hình chính Android:** 4 cảm xúc đã ghim, chạm là gửi không cần mở app; hiện "Đã gửi HH:mm" hoặc "chờ mạng". Thêm qua: giữ màn hình chính → Tiện ích → BuduPing.
-- Kiểm duyệt sticker: `funny-02` chuyển thành `love-04`, bỏ `miss-01` trùng. `tease-02` thực ra là cảnh đi ngủ — mood Ghét đang chờ sticker thay thế.
-- Đã thử nén EXE (170 → 80 MB) nhưng RAM tăng ~27% nên giữ nguyên không nén.
+- Sticker còn khoảng 45% kích thước cũ; mức Nhỏ nhỏ hơn rõ rệt. Lời nhắn vẫn dễ đọc.
+- Bubu là gấu trắng, Dudu là gấu nâu. Sửa ảnh chọn, nhãn và bộ lọc; giữ nhân vật đã chọn khi nâng cấp.
+- Đổi tiếng pop sang các nhịp a-ta-ta/ta ngắn. Spam có nhịp nảy, điểm nhấn combo và giới hạn âm thanh/hạt để ưu tiên hiệu năng.
+- Sửa combo từ Android bị tách vì mã sticker; giữ đúng nhân vật khi đổi biến thể.
+- Test sticker và gửi ôm đáp lại tôn trọng chế độ kín đáo.
+- Bỏ nút Đóng thừa; chỉnh header lời nhắn gọn hơn.
+- Mở EXE có thông báo đã chạy; mở lần nữa đưa cài đặt lên thay vì tạo thêm tiến trình. Khởi động cùng Windows vẫn yên lặng.
+- Giữ cơ chế quản lý RAM của 0.2.1, thêm kiểm tra native và so sánh RAM/CPU cùng điều kiện.
 
-Android là APK debug; chữ ký của runner có thể khác bản đã cài — nếu không cập nhật đè được thì gỡ bản cũ và ghép cặp lại. Đóng EXE cũ trước khi mở bản mới. Chi tiết kỹ thuật: `docs/DEV-NOTES.md`.
+Android là APK debug; chữ ký của runner có thể khác bản đã cài. Báo cáo kỹ thuật: `docs/DEVELOPMENT-REPORT-0.2.2.md`.
