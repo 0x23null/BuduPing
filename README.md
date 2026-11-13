@@ -3,7 +3,7 @@
 Một chạm trên Android, một sticker Bubu & Dudu xuất hiện trên máy Windows của người thương.
 Hai ứng dụng native dùng Firebase Realtime Database và mã ghép cặp `XXXX-XXXX`, không cần đăng nhập.
 
-## Đang phát triển (0.2.3)
+## Bản 0.2.3 preview
 
 - **Widget màn hình chính Android:** 4 cảm xúc đã ghim nằm ngay home screen, chạm là gửi không cần mở app; hiện "Đã gửi HH:mm" hoặc "chờ mạng".
 - **PC đáp lại đủ 12 cảm xúc + lời nhắn:** `Ctrl+Alt+Space` (hoặc menu tray) mở bảng chọn; Enter gửi Ôm như cũ. Điện thoại rung theo mẫu riêng từng cảm xúc và hiện lời nhắn.
