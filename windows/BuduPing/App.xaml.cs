@@ -98,6 +98,9 @@ public partial class App : Application
     private void RenderUiReview(string directory)
     {
         Directory.CreateDirectory(directory);
+        // Crashes raised from the message pump bypass the timer's try/catch; keep them diagnosable.
+        DispatcherUnhandledException += (_, args) =>
+            File.WriteAllText(Path.Combine(directory, "review-error.txt"), args.Exception.ToString());
         Config = new AppConfig { PairCode = PairCode.Generate(), HasSeenSetup = true };
         _stickers = new StickerService(Path.Combine(AppContext.BaseDirectory, "Assets", "Stickers"));
         _stickers.Preload();
