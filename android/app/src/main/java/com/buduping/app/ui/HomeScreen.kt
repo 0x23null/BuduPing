@@ -1,13 +1,19 @@
 package com.buduping.app.ui
 
+import android.Manifest
 import android.content.Context
+import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -18,10 +24,16 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -29,6 +41,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.buduping.app.*
+import com.buduping.app.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -60,8 +73,37 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var comboCount by remember { mutableIntStateOf(0) }
     var lastTap by remember { mutableLongStateOf(0L) }
     val bursts = remember { mutableStateMapOf<String, Int>() }
+    // Notification permission, asked properly once (Android 13+). Denied?
+    // Settings has a re-enable row. Without it a hug-back only shows in-app.
+    var notifGranted by remember { mutableStateOf(ReplyNotifier.isGranted(context)) }
+    val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        notifGranted = granted
+    }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 && !notifGranted && !prefs.notifAsked) {
+            prefs.notifAsked = true
+            notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    val foregroundNow by rememberUpdatedState(isForeground)
+    // Keep the background reply listener (foreground service) running while paired.
+    LaunchedEffect(pairId) { if (pairId.isNotBlank()) ReplyService.start(context) }
     LaunchedEffect(lastTap) { if (lastTap > 0) { delay(2_000); comboCount = 0 } }
-    val comboProgress by animateFloatAsState((comboCount / 5f).coerceIn(0f, 1f), tween(250), label = "combo")
+    val comboProgress by animateFloatAsState((comboCount / 8f).coerceIn(0f, 1f),
+        spring(dampingRatio = 0.5f, stiffness = 320f), label = "combo")
+    // The bar renders this snapshot so its exit animation does not flash "x0".
+    var shownComboType by remember { mutableStateOf("") }
+    var shownComboCount by remember { mutableIntStateOf(0) }
+    LaunchedEffect(comboCount) {
+        if (comboCount > 0) { shownComboType = comboType; shownComboCount = comboCount }
+    }
+    val barPulse = remember { androidx.compose.animation.core.Animatable(1f) }
+    LaunchedEffect(comboCount) {
+        if (comboCount >= 2) {
+            barPulse.snapTo(1.05f)
+            barPulse.animateTo(1f, spring(dampingRatio = 0.35f, stiffness = 260f))
+        }
+    }
     var catalogError by remember { mutableStateOf(false) }
     val catalog by produceState<List<StickerVariant>>(emptyList()) {
         value = withContext(Dispatchers.IO) {
@@ -78,8 +120,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     val age = now + offset - desktop.ts
     val online = connected && desktop.online && age in -5_000L..60_000L
 
-    DisposableEffect(pairId, isForeground) {
-        val stop = if (isForeground) repo.observe(pairId,
+    DisposableEffect(pairId) {
+        val stop = repo.observe(pairId,
             onPresence = { desktop = it }, onConnected = { connected = it }, onClockOffset = { offset = it },
             onFeedback = { feedback ->
                 if (feedback.eventId == pendingKey && pendingKey.isNotBlank()) {
@@ -88,12 +130,16 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                 if (feedback.replyId.isNotBlank() && feedback.replyId != prefs.lastReplyId) {
                     prefs.lastReplyId = feedback.replyId
                     if (System.currentTimeMillis() + offset - feedback.replyTs in -5_000L..600_000L) {
-                        replyType = feedback.replyType; replyVariant = feedback.replyVariant
-                        (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
-                            VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
+                        if (foregroundNow) {
+                            replyType = feedback.replyType; replyVariant = feedback.replyVariant
+                            (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
+                                VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
+                        } else {
+                            ReplyNotifier.show(context, feedback.replyType)
+                        }
                     }
                 }
-            }, onError = { status = "permission_error"; connected = false }) else { {} }
+            }, onError = { status = "permission_error"; connected = false })
         onDispose { stop() }
     }
 
@@ -125,7 +171,7 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
 
     val ordered = remember(favorites) { EMOTIONS.sortedBy { e -> favorites.indexOf(e.type).let { if (it < 0) 100 else it } } }
     val summary = remember(funTick) { prefs.funToday().take(3) }
-    Scaffold(modifier = Modifier.testTag("homeScreen"), topBar = {
+    Scaffold(modifier = Modifier.testTag("homeScreen"), containerColor = Color(0xFF251812), topBar = {
         TopAppBar(title = { Text("BuduPing", style = MaterialTheme.typography.headlineSmall) }, actions = {
             val connectionLabel = if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
             Box(Modifier.size(32.dp).semantics { contentDescription = connectionLabel }, contentAlignment = Alignment.Center) {
@@ -134,7 +180,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             IconButton(onClick = { settings = true }) { Icon(Icons.Default.Settings, "Cài đặt") }
         })
     }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
+        Column(Modifier.fillMaxSize().padding(padding)
+            .background(Brush.verticalGradient(listOf(Color(0xFF251812), Color(0xFF180F0A))))
+            .padding(horizontal = 16.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                 AssistChip(onClick = { unpair = true }, label = { Text(PairCode.format(pairId)) })
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -145,31 +193,53 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     }
                 }
             }
-            Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            AnimatedVisibility(visible = comboCount > 0,
+                enter = androidx.compose.animation.fadeIn(tween(160)) +
+                    androidx.compose.animation.expandVertically(tween(240), expandFrom = Alignment.Top),
+                exit = androidx.compose.animation.fadeOut(tween(220)) +
+                    androidx.compose.animation.shrinkVertically(tween(280), shrinkTowards = Alignment.Top)) {
+            val level = if (shownComboCount >= 8) 4 else if (shownComboCount >= 5) 3 else if (shownComboCount >= 3) 2 else 1
+            val levelName = listOf("Nhẹ nhàng", "Ấm áp", "Nồng nhiệt", "Bùng cháy")[level - 1]
+            val moodLabel = EMOTIONS.firstOrNull { it.type == shownComboType }?.label ?: "Cảm xúc"
+            val gradStart by androidx.compose.animation.animateColorAsState(
+                when (level) { 4 -> Color(0xFFFF6A3D); 3 -> Color(0xFFFF7A59); else -> Color(0xFFF77CA6) },
+                tween(350), label = "gradStart")
+            val gradEnd by androidx.compose.animation.animateColorAsState(
+                if (level >= 3) Color(0xFFFFD23F) else Color(0xFFFFB35C), tween(350), label = "gradEnd")
+            Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                    .graphicsLayer { scaleX = barPulse.value; scaleY = barPulse.value }) {
                 Column(Modifier.padding(14.dp, 12.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        val label = EMOTIONS.firstOrNull { it.type == comboType }?.label ?: "Cảm xúc"
-                        val level = if (comboCount >= 5) 3 else if (comboCount >= 3) 2 else 1
-                        val idleText = prefs.senderName + " · " +
-                            if (online) "PC đang mở" else if (!connected) "Chưa có mạng" else "PC đang nghỉ"
-                        Text(if (comboCount > 0) "$label · Lv$level" else idleText,
-                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.weight(1f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        if (comboCount > 0) Text("x$comboCount", style = MaterialTheme.typography.labelSmall)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text("$moodLabel · $levelName",
+                            style = MaterialTheme.typography.labelLarge, fontFamily = BalooFamily,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                        Text("Lv$level", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.clip(RoundedCornerShape(50))
+                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd)))
+                            .padding(horizontal = 10.dp, vertical = 3.dp)) {
+                            Text("x$shownComboCount", style = MaterialTheme.typography.labelLarge,
+                                fontFamily = BalooFamily, color = Color.White)
+                        }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { comboProgress }, modifier = Modifier.fillMaxWidth().height(5.dp),
-                        trackColor = MaterialTheme.colorScheme.primaryContainer)
+                    Spacer(Modifier.height(10.dp))
+                    Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(50))
+                        .background(Color.White.copy(alpha = 0.08f))) {
+                        Box(Modifier.fillMaxWidth(comboProgress).fillMaxHeight().clip(RoundedCornerShape(50))
+                            .background(Brush.horizontalGradient(listOf(gradStart, gradEnd))))
+                    }
                 }
+            }
             }
             LazyVerticalGrid(columns = GridCells.Fixed(4), modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(top = 4.dp, bottom = 12.dp)) {
                 items(ordered, key = { it.type }) { emotion ->
                     val allowed = StickerCatalog.allowedFor(catalog, emotion.type, myCharacter)
-                    val preview = allowed.firstOrNull { StickerCatalog.charactersOf(it) == setOf(myCharacter) }
-                    EmotionTile(emotion, preview ?: allowed.firstOrNull(),
+                    EmotionTile(emotion, StickerCatalog.previewFor(catalog, emotion.type, myCharacter),
                         emotion.type in favorites,
                         enabled = allowed.isNotEmpty(), burstToken = bursts[emotion.type] ?: 0,
                         onClick = { send(emotion.type) }, onLongClick = { picker = emotion })
@@ -177,9 +247,13 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             }
             Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
                 Column(Modifier.padding(12.dp)) {
-                    OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
-                        label = { Text("Lời nhắn", maxLines = 1) }, modifier = Modifier.fillMaxWidth(),
-                        singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedTextField(value = text, onValueChange = { text = it.take(80) },
+                            label = { Text("Lời nhắn", maxLines = 1) }, modifier = Modifier.weight(1f),
+                            singleLine = true, trailingIcon = { Text("${text.length}/80", style = MaterialTheme.typography.labelSmall) })
+                        Spacer(Modifier.width(10.dp))
+                        SendButton { send("love") }
+                    }
                     Spacer(Modifier.height(6.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         items(PRESET_CHIPS) { chip -> AssistChip(onClick = { text = chip.take(80) }, label = { Text(chip) }) }
@@ -189,13 +263,9 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             Text("Giữ một cảm xúc để chọn sticker hoặc ghim.", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
             if (catalogError) Text("Chưa tải được sticker. Mở lại ứng dụng để thử lại.", color = MaterialTheme.colorScheme.error)
+            // Only problems earn a line here — the resting "Đã hiện trên PC"
+            // status was noise the owner asked to remove.
             val statusLabel = when (status) {
-                "sending" -> if (connected) "Đang gửi…" else "Đang chờ mạng…"
-                "sent" -> if (online) "Đã gửi · chờ PC hiển thị" else "Đã gửi · chờ PC mở"
-                "displayed" -> "Đã hiện trên PC"
-                "received" -> "PC đã nhận · nội dung đang ẩn"
-                "expired" -> "Cảm xúc cũ đã hết hạn"
-                "superseded" -> "Đã gộp vào chuỗi cảm xúc"
                 "unavailable" -> "Chưa có sticker cho nhân vật này. Chọn cảm xúc khác nhé."
                 "failed" -> "Chưa gửi được · lời nhắn được giữ lại"
                 "permission_error" -> "Không đọc được kết nối · kiểm tra Firebase"
@@ -230,4 +300,25 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
         text = { Text("Mã ${PairCode.format(pairId)} sẽ bị quên trên điện thoại này.") },
         confirmButton = { TextButton(onClick = onUnpair) { Text("Huỷ cặp") } },
         dismissButton = { TextButton(onClick = { unpair = false }) { Text("Giữ lại") } })
+}
+
+/**
+ * The designed send button: a rose-gradient circle with a white paper plane —
+ * replaces the plain default look the owner called out. Sends the composed
+ * message riding a "love" ping (a bare tap with no text is just a love tap).
+ */
+@Composable
+private fun SendButton(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.84f else 1f, label = "sendScale")
+    Box(
+        Modifier.size(48.dp).scale(scale).clip(CircleShape)
+            .background(Brush.linearGradient(listOf(Color(0xFFF77CA6), Color(0xFFCE4A7C))))
+            .clickable(interactionSource = interaction, indication = null) { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(painterResource(R.drawable.ic_send), contentDescription = "Gửi lời nhắn",
+            tint = Color.White, modifier = Modifier.size(22.dp))
+    }
 }

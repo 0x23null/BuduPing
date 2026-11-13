@@ -32,6 +32,10 @@ public sealed class StickerService
     public static readonly IReadOnlyDictionary<string, string> TypeLabels =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
+            ["hello"] = "Chào",
+            ["wow"] = "Wow",
+            ["shy"] = "Ngại",
+            ["sleepy"] = "Buồn ngủ",
             ["love"] = "Yêu",
             ["miss"] = "Nhớ",
             ["hug"] = "Ôm",
@@ -54,6 +58,10 @@ public sealed class StickerService
     {
         "love" or "kiss" => ParticleKind.HeartRise,
         "miss" => ParticleKind.HeartFall,
+        "hello" => ParticleKind.Star,
+        "wow" => ParticleKind.Star,
+        "shy" => ParticleKind.Bubbles,
+        "sleepy" => ParticleKind.Zzz,
         "hug" => ParticleKind.Ring,
         "angry" or "tease" or "jealous" => ParticleKind.Puff,
         "sad" => ParticleKind.Rain,
@@ -103,6 +111,7 @@ public sealed class StickerService
     private readonly Dictionary<string, DecodedGif> _decoded = new(StringComparer.Ordinal);
     private readonly Queue<string> _decodedOrder = new();
     private readonly Dictionary<string, int> _pins = new(StringComparer.Ordinal);
+    private readonly object _sync = new();
     private string _lastShownKey = ""; // gif đang hiện trên overlay — không evict stream của nó
 
     public StickerService(string stickersRoot) => _root = stickersRoot;
@@ -177,15 +186,21 @@ public sealed class StickerService
     /// <summary>Nhả toàn bộ GIF đã decode (gọi sau khi overlay ẩn hẳn để trả RAM về idle).</summary>
     public void ReleaseDecoded()
     {
-        foreach (var d in _decoded.Values)
+        // MUST hold _sync: the background decode-then-swap path decodes under
+        // this lock, and disposing streams mid-decode crashes the process
+        // (this raced the 6s idle trim inside the CI ui-review run).
+        lock (_sync)
         {
-            try { d.Stream.Dispose(); } catch { }
+            foreach (var d in _decoded.Values)
+            {
+                try { d.Stream.Dispose(); } catch { }
+            }
+            _decoded.Clear();
+            _decodedOrder.Clear();
+            _pins.Clear();
+            _lastShownKey = "";
+            LastInfo = null;
         }
-        _decoded.Clear();
-        _decodedOrder.Clear();
-        _pins.Clear();
-        _lastShownKey = "";
-        LastInfo = null;
     }
 
     /// <summary>Decode 1 GIF khi cần (cache tối đa MaxDecoded cái gần nhất).</summary>
@@ -218,11 +233,21 @@ public sealed class StickerService
 
     public void Pin(BitmapImage image)
     {
+        lock (_sync) { PinLocked(image); }
+    }
+
+    private void PinLocked(BitmapImage image)
+    {
         var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
         if (entry.Key != null) _pins[entry.Key] = _pins.GetValueOrDefault(entry.Key) + 1;
     }
 
     public void Unpin(BitmapImage image)
+    {
+        lock (_sync) { UnpinLocked(image); }
+    }
+
+    private void UnpinLocked(BitmapImage image)
     {
         var entry = _decoded.FirstOrDefault(x => ReferenceEquals(x.Value.Image, image));
         if (entry.Key != null && _pins.TryGetValue(entry.Key, out int count))
@@ -258,6 +283,11 @@ public sealed class StickerService
 
     public string PickVariant(string type, string myCharacter = "")
     {
+        lock (_sync) { return PickVariantLocked(type, myCharacter); }
+    }
+
+    private string PickVariantLocked(string type, string myCharacter = "")
+    {
         if (!_byType.TryGetValue(type ?? "", out var list) || list.Count == 0) return "";
         if (string.IsNullOrEmpty(myCharacter)) return list[_rng.Next(list.Count)].Variant;
         var solo = list.Where(x => CharactersOf(x.Variant) is { Count: 1 } c && c[0] == myCharacter).ToList();
@@ -273,6 +303,11 @@ public sealed class StickerService
     }
 
     public BitmapImage? GetRandom(string type, string variant = "", string character = "")
+    {
+        lock (_sync) { return GetRandomLocked(type, variant, character); }
+    }
+
+    private BitmapImage? GetRandomLocked(string type, string variant, string character)
     {
         if (!_byType.TryGetValue(type ?? "", out var sources)) return null;
         var list = sources.Where(x => string.IsNullOrEmpty(character) || CharactersOf(x.Variant).Contains(character)).ToList();

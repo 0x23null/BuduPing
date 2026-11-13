@@ -20,6 +20,9 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_PAIR, "") ?: ""
         set(value) = sp.edit().putString(KEY_PAIR, value).apply()
 
+    var notifAsked: Boolean
+        get() = sp.getBoolean("notif_asked", false)
+        set(value) = sp.edit().putBoolean("notif_asked", value).apply()
     var pendingKey: String
         get() = sp.getString("pending_key", "") ?: ""
         set(value) = sp.edit().putString("pending_key", value).apply()

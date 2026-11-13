@@ -8,6 +8,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Threading.Tasks;
 using WpfAnimatedGif;
 using BuduPing.Core;
 using BuduPing.Services;
@@ -48,6 +49,14 @@ public partial class OverlayWindow : Window
     private int _expiredCount;
     internal Point LastBurstCenter { get; private set; }
     public PingEvent? LastPing { get; private set; }
+    // Edge peek (hello): card chrome is swapped out and restored afterwards.
+    private bool _edgePeek;
+    private bool _edgeChromeSaved;
+    private System.Windows.Media.Brush? _cardBackground;
+    private System.Windows.Media.Brush? _cardBorderBrush;
+    private Thickness _cardBorderThickness;
+    private System.Windows.Media.Effects.Effect? _cardEffect;
+
     public int PendingCount => _queue.Count;
     private readonly DispatcherTimer _hideTimer;
     private readonly Random _rng = new();
@@ -90,11 +99,15 @@ public partial class OverlayWindow : Window
         _hideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ShowSeconds) };
         _hideTimer.Tick += (_, _) => HideCurrent();
 
-        _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(20) };
+        // First tick comes early (6s): launch-time working-set bulk (runtime +
+        // WPF + preloaded GIF bytes) gets handed back quickly instead of
+        // lingering ~20s. Post-hide cycles then use the calmer 20s cadence.
+        _idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
         _idleTimer.Tick += (_, _) =>
         {
             _idleTimer.Stop();
-            if (_isShowing) return;
+            _idleTimer.Interval = TimeSpan.FromSeconds(20);
+            if (_isShowing || MemoryTrim.Disabled) return;
             _stickers.ReleaseDecoded();
             MemoryTrim.TrimIdle(_stickers.DecodedBytes);
         };
@@ -225,35 +238,65 @@ public partial class OverlayWindow : Window
 
     private void Display(PingEvent ping, bool peek = false)
     {
+        // Mood switch while the buddy is already on screen: decode the new GIF
+        // on a background thread and swap it in with a soft bounce — replaying
+        // the full entrance (and blocking the UI thread on a cold decode) made
+        // spam-switching feel like a notification re-posting, with a hitch.
+        bool switching = _isShowing && !_isHiding && !_peeking && !peek
+            && Visibility == Visibility.Visible
+            && !string.IsNullOrEmpty(_activeType)
+            && !string.Equals(_activeType, ping.Type, StringComparison.OrdinalIgnoreCase);
         _generation++;
-        var displayWatch = Stopwatch.StartNew();
         _idleTimer.Stop();
+        if (switching)
+        {
+            int generation = _generation;
+            Task.Run(() =>
+            {
+                var loaded = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
+                Dispatcher.InvokeAsync(() =>
+                {
+                    if (generation != _generation) { _app.CompletePing(ping, "superseded"); return; }
+                    if (loaded == null) { _app.CompletePing(ping, "unavailable"); return; }
+                    ApplyDisplay(ping, peek, loaded, switching: true);
+                });
+            });
+            return;
+        }
+        var bmp0 = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
+        if (bmp0 == null)
+        {
+            _isShowing = false;
+            _app.CompletePing(ping, "unavailable");
+            return;
+        }
+        ApplyDisplay(ping, peek, bmp0, switching: false);
+    }
+
+    private void ApplyDisplay(PingEvent ping, bool peek, BitmapImage bmp, bool switching)
+    {
+        var displayWatch = Stopwatch.StartNew();
         _current = ping;
         _peeking = peek;
         _isShowing = true; _isHiding = false;
         _activeType = ping.Type; _activeCount = 1; _lv3Done = false;
         _windowStartUtc = DateTime.UtcNow; _lastTapUtc = _windowStartUtc;
         ClearParticles();
-        var bmp = _stickers.GetRandom(ping.Type, ping.Variant, ping.Character);
-        if (bmp == null)
-        {
-            _isShowing = false;
-            _app.CompletePing(ping, "unavailable");
-            return;
-        }
         SetAnimationSource(StickerImage, bmp);
         NormalizeSticker(bmp.PixelWidth, bmp.PixelHeight);
-        BubbleFrom.Text = string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim();
+        EmojiArt.ApplyTo(BubbleFrom, string.IsNullOrWhiteSpace(ping.From) ? "Người thương" : ping.From.Trim(), 15);
+        UpdateBubbleAvatar(ping.Character);
         BubbleEmotion.Text = StickerService.LabelFor(ping.Type);
         string text = (ping.Text ?? "").Trim();
         bool hiddenText = _app.Config.HideMessageText && text.Length > 0;
-        BubbleText.Text = hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)];
+        EmojiArt.ApplyTo(BubbleText, hiddenText ? "Bạn có một lời nhắn riêng." : text[..Math.Min(text.Length, 80)]);
         Bubble.Visibility = !peek && text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
         BubbleTail.Visibility = Bubble.Visibility;
         var glowColor = ping.Type is "miss" or "sad" or "goodnight" or "sorry"
             ? Color.FromArgb(90, 150, 190, 255) : ping.Type is "hug" or "cheer" or "hungry"
             ? Color.FromArgb(90, 255, 185, 115) : Color.FromArgb(90, 255, 175, 205);
         StickerGlow.Fill = new RadialGradientBrush(glowColor, Colors.Transparent);
+        StickerGlow.Visibility = Visibility.Collapsed;
         ComboBadge.Visibility = Visibility.Collapsed;
         StickerScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
         StickerScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
@@ -265,7 +308,27 @@ public partial class OverlayWindow : Window
         Visibility = Visibility.Visible;
         PlaceBottomRight();
         UpdateLayout(); // The first burst needs the arranged sticker position, not its unmeasured origin.
-        PlayEntrance();
+        // Hello (no text, not discreet) = edge peek: the buddy slides out of the
+        // right screen rim, body cropped by the rim itself. Text hellos keep the
+        // normal corner card so the message stays fully readable.
+        bool wantEdge = string.Equals(ping.Type, "hello", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(ping.Text) && !peek && !_app.Config.DiscreetMode;
+        if (wantEdge)
+        {
+            ApplyEdgeChrome();
+            DisplayPlacement.PlacePeekRight(this, _app.Config.MonitorDevice);
+            PlayEdgeEntrance();
+        }
+        else if (switching)
+        {
+            RestoreEdgeChrome();
+            PlaySwapBounce();
+        }
+        else
+        {
+            RestoreEdgeChrome();
+            PlayEntrance();
+        }
         if (!peek)
         {
             if (!_app.Config.ReducedMotion)
@@ -278,7 +341,7 @@ public partial class OverlayWindow : Window
                     BurstFor(ping.Type, StickerCenter(), 1);
                 }, DispatcherPriority.Loaded);
             }
-            _app.PlayPop();
+            _app.PlayPop(1, ping.Character, ping.Type);
             // One callback after composition starts, not when the event merely enters a queue.
             EventHandler? rendered = null;
             rendered = (_, _) =>
@@ -312,7 +375,7 @@ public partial class OverlayWindow : Window
         double scale = 244 / Math.Max(w, h);
         StickerImage.Width = width * scale; StickerImage.Height = height * scale;
         Canvas.SetLeft(StickerImage, (264 - w * scale) / 2 - x * scale);
-        Canvas.SetTop(StickerImage, 254 - h * scale - y * scale);
+        Canvas.SetTop(StickerImage, 264 - h * scale - y * scale);
     }
 
     private void ApplyMoodPose(string type)
@@ -336,7 +399,7 @@ public partial class OverlayWindow : Window
         ComboBadge.Visibility = Visibility.Visible;
         // Audio and motion respond to this received beat. Excess events update the counter,
         // never schedule a backlog of sounds, decodes or animation clocks.
-        _app.PlayPop(_activeCount);
+        _app.PlayPop(_activeCount, _current?.Character ?? "", _activeType);
         if (_app.Config.ReducedMotion) return;
         long now = _feedbackClock.ElapsedMilliseconds;
         if (now - _lastVisualBeat < PresentationPolicy.VisualGapMs) return;
@@ -388,6 +451,7 @@ public partial class OverlayWindow : Window
         {
             if (generation != _generation) return;
             Visibility = Visibility.Collapsed;
+            RestoreEdgeChrome();
             _isShowing = false;
             _isHiding = false;
             ClearParticles();
@@ -402,6 +466,75 @@ public partial class OverlayWindow : Window
         };
         ContentSlide.BeginAnimation(TranslateTransform.YProperty, slide);
         ContentPanel.BeginAnimation(OpacityProperty, fade);
+    }
+
+    private void ApplyEdgeChrome()
+    {
+        if (!_edgeChromeSaved)
+        {
+            _cardBackground = StickerCard.Background;
+            _cardBorderBrush = StickerCard.BorderBrush;
+            _cardBorderThickness = StickerCard.BorderThickness;
+            _cardEffect = StickerCard.Effect;
+            _edgeChromeSaved = true;
+        }
+        StickerCard.Background = System.Windows.Media.Brushes.Transparent;
+        StickerCard.BorderThickness = new Thickness(0);
+        StickerCard.Effect = null;
+        StickerCard.RenderTransform = new TranslateTransform(30, 0);
+        StickerGlow.Visibility = Visibility.Collapsed;
+        _edgePeek = true;
+    }
+
+    private void RestoreEdgeChrome()
+    {
+        if (!_edgePeek) return;
+        _edgePeek = false;
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty, null);
+        ContentSlide.X = 0;
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentTilt.Angle = 0;
+        if (_edgeChromeSaved)
+        {
+            StickerCard.Background = _cardBackground;
+            StickerCard.BorderBrush = _cardBorderBrush;
+            StickerCard.BorderThickness = _cardBorderThickness;
+            StickerCard.Effect = _cardEffect;
+            StickerGlow.Visibility = Visibility.Collapsed;
+        }
+        StickerCard.RenderTransform = null;
+    }
+
+    private void PlayEdgeEntrance()
+    {
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty, null);
+        ContentSlide.BeginAnimation(TranslateTransform.YProperty, null);
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty, null);
+        ContentPanel.BeginAnimation(OpacityProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        BubbleScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        BubbleScale.ScaleX = BubbleScale.ScaleY = 1;
+        if (_app.Config.ReducedMotion)
+        {
+            ContentSlide.X = 0; ContentSlide.Y = 0; ContentTilt.Angle = -2.5;
+            ContentScale.ScaleX = ContentScale.ScaleY = 1; ContentPanel.Opacity = 1;
+            return;
+        }
+        ContentSlide.X = 175; ContentSlide.Y = 0;
+        ContentScale.ScaleX = ContentScale.ScaleY = 0.92;
+        ContentPanel.Opacity = 0;
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        ContentSlide.BeginAnimation(TranslateTransform.XProperty,
+            new DoubleAnimation(175, 0, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentTilt.BeginAnimation(RotateTransform.AngleProperty,
+            new DoubleAnimation(-7, -2.5, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentScale.BeginAnimation(ScaleTransform.ScaleXProperty,
+            new DoubleAnimation(0.92, 1, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentScale.BeginAnimation(ScaleTransform.ScaleYProperty,
+            new DoubleAnimation(0.92, 1, TimeSpan.FromMilliseconds(620)) { EasingFunction = ease });
+        ContentPanel.BeginAnimation(OpacityProperty, new DoubleAnimation(1, TimeSpan.FromMilliseconds(220)));
     }
 
     // ================= Animation vào/ra =================
@@ -446,6 +579,67 @@ public partial class OverlayWindow : Window
                 BubbleScale.BeginAnimation(property, bubble);
             }
         }
+    }
+
+    /// <summary>Soft in-place reaction when the mood changes mid-display:
+    /// a quick dip of the whole panel; the sticker swap lands inside the dip.</summary>
+    private void PlaySwapBounce()
+    {
+        if (_app.Config.ReducedMotion) return;
+        var ease = new SineEase { EasingMode = EasingMode.EaseInOut };
+        foreach (var property in new[] { ScaleTransform.ScaleXProperty, ScaleTransform.ScaleYProperty })
+        {
+            var anim = new DoubleAnimationUsingKeyFrames();
+            anim.KeyFrames.Add(new LinearDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.Zero)));
+            anim.KeyFrames.Add(new EasingDoubleKeyFrame(0.86, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(110)), ease));
+            anim.KeyFrames.Add(new EasingDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(280)), ease));
+            ContentScale.BeginAnimation(property, anim);
+        }
+    }
+
+    private BitmapSource? _avatarBubu;
+    private BitmapSource? _avatarDudu;
+
+    /// <summary>The bubble header shows the sender's own character instead of a
+    /// generic heart when we know who sent it: the head of their hello sticker,
+    /// cropped big and seated on a bright gradient disc so BOTH faces — white
+    /// panda and dark brown bear alike — stay colorful and readable at 26px
+    /// on the dark bubble (the full-body frame read as a dark smudge).</summary>
+    private void UpdateBubbleAvatar(string character)
+    {
+        BitmapSource? avatar = character switch
+        {
+            "bubu" => _avatarBubu ??= LoadAvatar("hello-01", "bubu"),
+            "dudu" => _avatarDudu ??= LoadAvatar("hello-03", "dudu"),
+            _ => null,
+        };
+        if (avatar != null)
+        {
+            BubbleAvatar.Source = avatar;
+            BubbleAvatarChip.Visibility = Visibility.Visible;
+            BubbleHeartChip.Visibility = Visibility.Collapsed;
+        }
+        else
+        {
+            BubbleAvatarChip.Visibility = Visibility.Collapsed;
+            BubbleHeartChip.Visibility = Visibility.Visible;
+        }
+    }
+
+    private BitmapSource? LoadAvatar(string variant, string character)
+    {
+        var full = _stickers.GetRandom("hello", variant, character);
+        if (full == null) return null;
+        var b = _stickers.LastInfo?.bounds;
+        if (b?.Length != 4 || b[2] <= b[0] || b[3] <= b[1]) return full;
+        int x = Math.Max(0, b[0]);
+        int y = Math.Max(0, b[1]);
+        int w = Math.Min(full.PixelWidth - x, b[2] - b[0]);
+        int h = Math.Min(full.PixelHeight - y, (int)((b[3] - b[1]) * 0.68));
+        if (w < 8 || h < 8) return full;
+        var crop = new CroppedBitmap(full, new Int32Rect(x, y, w, h));
+        crop.Freeze();
+        return crop;
     }
 
     private static void StartScaleKeyframes(ScaleTransform target,

@@ -122,7 +122,7 @@ class HomeUiTest {
     @Test fun narrowLargeText() {
         show(false, 1.3f, 320)
         compose.onNodeWithText("Bubu").assertIsDisplayed()
-        compose.onNodeWithText("Người thương · Chưa có mạng").assertIsDisplayed()
+        compose.onNodeWithText("Người thương · Chưa có mạng").assertDoesNotExist()
         capture("home-large-text-320")
     }
 }

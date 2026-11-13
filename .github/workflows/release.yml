@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.gate.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
       - name: Read version
@@ -32,8 +33,25 @@ jobs:
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write('tag=' + tag + '\n')
           PY
+      # A branch push whose VERSION already has a tag (e.g. main catching up to a
+      # branch that was released by tag) must not rebuild and overwrite that release.
+      - name: Skip versions that are already published
+        id: gate
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" != "tag" ] && git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::notice::$TAG already exists; nothing to publish for this push."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Report result
+        if: always()
+        run: bash .github/scripts/report-ci.sh release-version "${{ job.status }}" "" 
   apk:
     needs: version
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +84,7 @@ jobs:
         run: bash .github/scripts/report-ci.sh release-apk "${{ job.status }}" "$RUNNER_TEMP/build.log"
   windows:
     needs: version
+    if: needs.version.outputs.publish == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,6 +117,7 @@ jobs:
         run: bash .github/scripts/report-ci.sh release-windows "${{ job.status }}" "$RUNNER_TEMP/build.log"
   publish:
     needs: [version, apk, windows]
+    if: needs.version.outputs.publish == 'true'
     runs-on: ubuntu-latest
     # Run 6 failed creating the release: 403 "Resource not accessible by
     # integration" — declare the permission on the job itself as well.
@@ -116,7 +136,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: BuduPing ${{ needs.version.outputs.tag }} — compact stickers, atata and startup feedback
+          name: "BuduPing ${{ needs.version.outputs.tag }} — reliable background hug-back notifications, smoother spam, faster startup trim"
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |

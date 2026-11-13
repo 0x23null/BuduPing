@@ -37,7 +37,7 @@ fun characterName(kind: String?): String = when (kind) {
  */
 @Composable
 fun CharacterPicker(catalog: List<StickerVariant>, onPick: (String) -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(modifier = Modifier.testTag("characterPicker"), onDismissRequest = onDismiss, title = { Text("Bạn là ai trong hai đứa?") }, text = {
+    AlertDialog(modifier = Modifier.testTag("characterPicker"), onDismissRequest = onDismiss, title = { Text("Bạn là ai trong hai đứa?", fontFamily = BalooFamily) }, text = {
         Column {
             Text("Từ giờ sticker bạn gửi sẽ là của nhân vật bạn chọn.",
                 style = MaterialTheme.typography.bodyMedium,

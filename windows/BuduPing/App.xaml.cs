@@ -48,6 +48,7 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
         if (e.Args.Length == 2 && e.Args[0] == "--ui-review")
         {
+            MemoryTrim.Disabled = true;
             RenderUiReview(e.Args[1]);
             return;
         }
@@ -118,8 +119,8 @@ public partial class App : Application
                     !_stickers.HasForCharacter("sad", "bubu"))
                     throw new InvalidOperationException("Native character catalog mapping is incorrect.");
                 _overlay = new OverlayWindow(_stickers, this);
-                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương",
-                    Text = "Một cái ôm gửi đến bạn. Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
+                _overlay.ShowPing(new PingEvent { Id = "review-message", Type = "hug", From = "Người thương", Character = "dudu",
+                    Text = "Một cái ôm gửi đến bạn 🥺❤️ Hôm nay mình vẫn ở đây nhé!", IsLocal = true });
                 await Task.Delay(950);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-message.png");
                 _overlay.ResetPair();
@@ -138,6 +139,11 @@ public partial class App : Application
                 _overlay.ShowPing(new PingEvent { Type = "love", Variant = "love-03", IsLocal = true });
                 await Task.Delay(750);
                 SaveVisual((FrameworkElement)_overlay.Content, "overlay-small.png");
+                _overlay.ResetPair();
+                Config.OverlayScale = 1;
+                _overlay.ShowPing(new PingEvent { Type = "hello", IsLocal = true });
+                await Task.Delay(850);
+                SaveVisual((FrameworkElement)_overlay.Content, "overlay-hello.png");
                 Config.DiscreetMode = true; Config.MyCharacter = "bubu";
                 _overlay.ResetPair();
                 SendTestPing(); await Task.Delay(200);
@@ -387,9 +393,9 @@ public partial class App : Application
 
     private void LoadPopSound() => _sounds = new SoundService();
 
-    public void PlayPop(int comboCount = 1)
+    public void PlayPop(int comboCount = 1, string character = "", string type = "")
     {
-        if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount);
+        if (Config.SoundOn && !Config.DiscreetMode) _sounds?.Play(comboCount, character, type);
     }
 
 

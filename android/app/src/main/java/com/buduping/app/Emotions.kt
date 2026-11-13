@@ -2,8 +2,9 @@ package com.buduping.app
 
 data class Emotion(val type: String, val label: String, val emoji: String)
 
-/** The 12 emotions on the home grid. Order matches the spec. */
+/** The emotions on the home grid: hello (edge-peek greeting) + the 12 core ones. */
 val EMOTIONS = listOf(
+    Emotion("hello", "Chào", "👋"),
     Emotion("miss", "Nhớ", "🥺"),
     Emotion("love", "Yêu", "❤️"),
     Emotion("hug", "Ôm", "🤗"),
@@ -16,10 +17,14 @@ val EMOTIONS = listOf(
     Emotion("cheer", "Cố lên", "💪"),
     Emotion("hungry", "Đói", "🍜"),
     Emotion("goodnight", "Ngủ ngon", "🌙"),
+    Emotion("sleepy", "Buồn ngủ", "🥱"),
+    Emotion("wow", "Wow", "😲"),
+    Emotion("shy", "Ngại", "🙈"),
 )
 
 /** Short labels used by the daily fun counter. */
 val FUN_LABELS = mapOf(
+    "hello" to "chào",
     "miss" to "nhớ",
     "love" to "yêu",
     "hug" to "ôm",
@@ -32,6 +37,9 @@ val FUN_LABELS = mapOf(
     "cheer" to "cố lên",
     "hungry" to "đói",
     "goodnight" to "ngủ ngon",
+    "wow" to "wow",
+    "shy" to "ngại",
+    "sleepy" to "buồn ngủ",
 )
 
 /** Short one-tap preset message chips. */
