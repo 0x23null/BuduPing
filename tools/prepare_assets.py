@@ -22,7 +22,6 @@ CHARACTERS = {
     'cheer-01': ['bubu', 'dudu'],
     'cheer-03': ['bubu', 'dudu'],
     'funny-01': ['bubu'],
-    'funny-02': ['bubu', 'dudu'],
     'funny-03': ['dudu'],
     'goodnight-01': ['bubu', 'dudu'],
     'goodnight-03': ['bubu', 'dudu'],
@@ -36,14 +35,14 @@ CHARACTERS = {
     'kiss-03': ['bubu', 'dudu'],
     'love-02': ['dudu'],  # brown bear with "i love you" baked caption
     'love-03': ['bubu'],
-    'miss-01': ['bubu', 'dudu'],
-    'miss-03': ['bubu', 'dudu'],
+    'love-04': ['bubu', 'dudu'],  # was funny-02: bear cuddling a mini panda with hearts (audit 2026-11-13)
+    'miss-03': ['bubu', 'dudu'],  # miss-01 removed: same scene as miss-03, smaller
     'miss-04': ['bubu'],
     'sad-01': ['bubu'],  # white panda crying a tear pool
     'sad-02': ['bubu'],  # white panda alone with purple object
     'sorry-01': ['bubu'],  # white panda bowing alone
     'sorry-02': ['bubu'],
-    'tease-02': ['bubu', 'dudu'],
+    'tease-02': ['bubu', 'dudu'],  # same bedtime scene as goodnight-01; kept only so "tease" is not empty
 }
 
 

@@ -87,7 +87,8 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish 2>&1 | tee "$RUNNER_TEMP/build.log"
+          dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish 2>&1 | tee "$RUNNER_TEMP/build.log"
+          ls -l publish/BuduPing.exe
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows

@@ -1,8 +1,5 @@
 package com.buduping.app.ui
 
-import android.content.Context
-import android.os.VibrationEffect
-import android.os.Vibrator
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -29,6 +26,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.unit.dp
 import com.buduping.app.*
+import com.buduping.app.widget.FavoritesWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -55,6 +53,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
     var characterPicker by remember { mutableStateOf(false) }
     var replyType by remember { mutableStateOf<String?>(null) }
     var replyVariant by remember { mutableStateOf("") }
+    var replyText by remember { mutableStateOf("") }
+    var replyCharacter by remember { mutableStateOf("") }
     var funTick by remember { mutableIntStateOf(0) }
     var comboType by remember { mutableStateOf("") }
     var comboCount by remember { mutableIntStateOf(0) }
@@ -89,8 +89,8 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
                     prefs.lastReplyId = feedback.replyId
                     if (System.currentTimeMillis() + offset - feedback.replyTs in -5_000L..600_000L) {
                         replyType = feedback.replyType; replyVariant = feedback.replyVariant
-                        (context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator)?.vibrate(
-                            VibrationEffect.createWaveform(longArrayOf(0, 30, 70, 40), -1))
+                        replyText = feedback.replyText; replyCharacter = feedback.replyCharacter
+                        ReplyHaptics.play(context, feedback.replyType)
                     }
                 }
             }, onError = { status = "permission_error"; connected = false }) else { {} }
@@ -214,16 +214,27 @@ fun HomeScreen(prefs: Prefs, repo: FirebaseRepo, isForeground: Boolean, onUnpair
             onFavorite = {
                 favorites = if (emotion.type in favorites) favorites - emotion.type else (favorites + emotion.type).takeLast(4)
                 prefs.favorites = favorites
+                FavoritesWidget.refresh(context)
             }, onDismiss = { picker = null }, onSend = { variant -> picker = null; send(emotion.type, variant.id) })
     }
     replyType?.let { type ->
-        AlertDialog(onDismissRequest = { replyType = null }, title = { Text("Một cái ôm đáp lại.") },
-            text = { StickerArt(catalog.firstOrNull { it.id == replyVariant } ?: catalog.firstOrNull { it.type == type },
-                Modifier.fillMaxWidth().height(220.dp), "Một cái ôm từ PC", animated = isForeground) },
+        val mood = EMOTIONS.firstOrNull { it.type == type }
+        val sender = when (replyCharacter) { "bubu" -> "Bubu"; "dudu" -> "Dudu"; else -> "PC" }
+        AlertDialog(onDismissRequest = { replyType = null },
+            title = { Text("$sender gửi ${mood?.label ?: type} ${mood?.emoji ?: ""}".trim()) },
+            text = {
+                Column {
+                    StickerArt(catalog.firstOrNull { it.id == replyVariant } ?: catalog.firstOrNull { it.type == type },
+                        Modifier.fillMaxWidth().height(220.dp), "${mood?.label ?: type} từ PC", animated = isForeground)
+                    if (replyText.isNotBlank()) Text(replyText, style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite })
+                }
+            },
             confirmButton = { TextButton(onClick = { replyType = null }) { Text("Nhận rồi") } })
     }
     if (characterPicker) CharacterPicker(catalog,
-        onPick = { kind -> prefs.myCharacter = kind; myCharacter = kind; comboCount = 0; comboType = ""; lastTap = 0; characterPicker = false },
+        onPick = { kind -> prefs.myCharacter = kind; myCharacter = kind; comboCount = 0; comboType = ""; lastTap = 0; characterPicker = false
+            FavoritesWidget.refresh(context) },
         onDismiss = { characterPicker = false })
     if (settings) SettingsDialog(prefs, onDismiss = { settings = false }, onChangeCode = { settings = false; onChangeCode() })
     if (unpair) AlertDialog(onDismissRequest = { unpair = false }, title = { Text("Huỷ ghép cặp?") },

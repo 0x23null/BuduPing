@@ -50,6 +50,9 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
 
+    // --- Home-screen widget (Glance renders Compose-style UI into RemoteViews) ---
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
     // --- Firebase (BOM pins firebase artifacts; DB URL comes from google-services.json) ---
     val firebaseBom = platform("com.google.firebase:firebase-bom:33.7.0")
     implementation(firebaseBom)

@@ -1,3 +1,33 @@
+## Current handoff — 0.2.3 (đang phát triển, chưa đổi `VERSION`)
+
+Đọc mục này trước, rồi [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md). **Bubu là gấu trắng; Dudu là gấu nâu.** Giữ nguyên engine RAM của 0.2.1.
+
+- **Hợp đồng feedback mở rộng (tương thích ngược):** `/pairs/{pairId}/feedback/reply` nay là
+  `{ id, replyTo, type, variant, character, text, ts }`. `type` là bất kỳ 1 trong 12 mood (trước chỉ `hug`);
+  `replyTo` có thể rỗng vì PC được chủ động gửi khi chưa nhận gì; `text` ≤ 80 ký tự; `character` là nhân vật PC chọn
+  (`bubu`/`dudu`/rỗng). Android cũ bỏ qua trường lạ và vẫn hiện sticker theo `variant`.
+- **PC:** `Ctrl+Alt+Space`, menu tray và nút trong cài đặt mở `Ui/ReplyWindow` (lưới 12 mood + ô lời nhắn).
+  Hotkey bấm lần nữa thì đóng. Enter gửi ô đang focus (mặc định Ôm nên "Ctrl+Alt+Space → Enter" vẫn là một cái ôm).
+  Ô mood bị mờ nếu nhân vật đã chọn không có sticker. Xác nhận gửi vẫn đi qua overlay với `IsLocal=true`
+  (tôn trọng kín đáo). `--ui-review` chụp thêm `reply-picker.png` và kiểm tra đủ 12 ô.
+- **Android nhận đáp lại:** hộp thoại ghi "Bubu/Dudu/PC gửi <mood>", kèm lời nhắn nếu có; rung theo mẫu riêng từng mood
+  (`ReplyHaptics`). Vẫn chỉ nhận khi app đang mở — chưa có notification nền.
+- **Widget màn hình chính Android** (`widget/FavoritesWidget`, Glance 1.1.1): 4 ô = cảm xúc đã ghim (bù bằng thứ tự lưới),
+  lọc theo nhân vật; chạm là gửi quick-tap y hệt trong app (`variantLocked=false`), đợi ack server tối đa 8 s rồi ghi trạng thái
+  vào state của widget (Đã gửi HH:mm / chờ mạng / chưa gửi được). Chưa ghép cặp thì widget mở app. App gọi
+  `FavoritesWidget.refresh()` khi đổi ghim, đổi nhân vật, ghép/huỷ cặp.
+- **EXE nén:** workflow publish thêm `-p:EnableCompressionInSingleFile=true` (dự kiến ~170 MB → ~60–70 MB). Đổi lại assembly
+  được giải nén vào RAM lúc khởi động; CI `build-windows` so RAM với 0.2.1 đã phát hành — đọc `memory-comparison.md`
+  trước khi release, nếu RAM tăng rõ thì bỏ cờ này.
+- **Kiểm duyệt sticker 2026-11-13** (soi 6 frame/GIF trên nền sáng và tối):
+  `funny-02` → `love-04` (gấu nâu ôm panda nhỏ, trái tim — là yêu, không phải cười); xoá `miss-01` (cùng cảnh với `miss-03`, nhỏ hơn).
+  **`tease-02` là cảnh đi ngủ y hệt `goodnight-01`** — mood Ghét 😤 hiện không có sticker đúng, giữ tạm để ô không bị khoá;
+  cần GIF mới (gấu dỗi/lườm/nhéo). Chất lượng: `angry-02`, `hungry-01` chỉ 2 frame (gần tĩnh); `hungry-02` viền xanh lơ;
+  caption dính: `angry-01` "ANGRY BUBU", `love-02` "嘻嘻/i love you", `cheer-03` "干杯!", `sorry-02` "打扰了!".
+  Borderline: `hug-03` (ôm panda đang ngủ, zzz) và `goodnight-03` (ôm nhau, trái tim) có thể hoán đổi; `cheer-03` là cụng ly.
+- Build local: WPF compile được trên Linux với `dotnet build -p:EnableWindowsTargeting=true` (chỉ kiểm tra biên dịch,
+  không chạy được). Android cần JDK 17 + SDK 34 (`local.properties` đã gitignore).
+
 ## Current handoff — 0.2.2
 
 Read [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md) first. It corrects older character-name assumptions: **Bubu is white; Dudu is brown**. Preserve the shipped 0.2.1 memory engine.

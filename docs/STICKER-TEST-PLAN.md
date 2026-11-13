@@ -17,11 +17,12 @@ Mục tiêu: xác nhận sticker hiển thị **sạch, không viền halo, khô
 
 | Mood | Sticker trong mood | Điểm cần soi kỹ |
 |---|---|---|
-| miss | miss-01, miss-03, miss-04 | miss-01 vs miss-03 gần như trùng nhau — xem có phân biệt được không; miss-04 chỉ có Bubu trắng |
-| love | love-02, love-03 | love-01 đã loại khỏi bộ đóng gói; love-02 chỉ Dudu nâu, love-03 chỉ Bubu trắng |
-| angry | angry-01, angry-02 | angry-01 **đổi nhân vật giữa chừng** (panda → gấu nâu → panda) + chữ "ANGRY BUBU" dính sẵn trong ảnh |
-| tease | tease-02 | chỉ còn đúng 1 variant; cảnh giường giống goodnight-01 — xem có lẫn không |
-| goodnight | goodnight-01, goodnight-03 | cả 2 đều có 2 nhân vật |
+| miss | miss-03, miss-04 | miss-01 đã xoá (trùng cảnh miss-03); miss-04 chỉ có Bubu trắng |
+| love | love-02, love-03, love-04 | love-01 đã loại khỏi bộ đóng gói; love-02 chỉ Dudu nâu, love-03 chỉ Bubu trắng; love-04 (từ funny-02) gấu nâu ôm panda nhỏ |
+| angry | angry-01, angry-02 | angry-01 **đổi nhân vật giữa chừng** (panda → gấu nâu → panda) + chữ "ANGRY BUBU" dính sẵn trong ảnh; angry-02 chỉ 2 frame |
+| tease | tease-02 | **cùng cảnh đi ngủ với goodnight-01 — không phải trêu/ghét.** Giữ tạm để ô không khoá; cần GIF thay thế |
+| goodnight | goodnight-01, goodnight-03 | cả 2 đều có 2 nhân vật; goodnight-03 giống ôm hơn ngủ |
+| funny | funny-01, funny-03 | funny-02 đã chuyển sang love-04; funny-03 có viền sáng mảnh |
 
 Với **mỗi mood × mỗi nền**, gửi 1 sticker từ điện thoại và check:
 
