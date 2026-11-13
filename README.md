@@ -7,7 +7,7 @@ Hai ứng dụng native dùng Firebase Realtime Database và mã ghép cặp `XX
 
 - **Widget màn hình chính Android:** 4 cảm xúc đã ghim nằm ngay home screen, chạm là gửi không cần mở app; hiện "Đã gửi HH:mm" hoặc "chờ mạng".
 - **PC đáp lại đủ 12 cảm xúc + lời nhắn:** `Ctrl+Alt+Space` (hoặc menu tray) mở bảng chọn; Enter gửi Ôm như cũ. Điện thoại rung theo mẫu riêng từng cảm xúc và hiện lời nhắn.
-- **EXE nhẹ hơn:** bật nén single-file khi publish (dự kiến ~170 MB → ~60–70 MB); CI vẫn so RAM với bản 0.2.1.
+- **EXE:** đã thử nén single-file (170 → 80 MB) nhưng RAM tăng ~20–27% trong CI nên giữ nguyên không nén; chi tiết trong DEV-NOTES.
 - Kiểm duyệt lại 26 sticker: chuyển `funny-02` sang `love-04`, bỏ `miss-01` trùng; `tease-02` thực ra là cảnh đi ngủ, cần thay.
 
 ## Bản 0.2.2 preview

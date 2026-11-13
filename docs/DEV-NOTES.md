@@ -16,9 +16,14 @@
   lọc theo nhân vật; chạm là gửi quick-tap y hệt trong app (`variantLocked=false`), đợi ack server tối đa 8 s rồi ghi trạng thái
   vào state của widget (Đã gửi HH:mm / chờ mạng / chưa gửi được). Chưa ghép cặp thì widget mở app. App gọi
   `FavoritesWidget.refresh()` khi đổi ghim, đổi nhân vật, ghép/huỷ cặp.
-- **EXE nén:** workflow publish thêm `-p:EnableCompressionInSingleFile=true` (dự kiến ~170 MB → ~60–70 MB). Đổi lại assembly
-  được giải nén vào RAM lúc khởi động; CI `build-windows` so RAM với 0.2.1 đã phát hành — đọc `memory-comparison.md`
-  trước khi release, nếu RAM tăng rõ thì bỏ cờ này.
+- **EXE nén — đã thử và bỏ (2026-11-13):** `-p:EnableCompressionInSingleFile=true` cho EXE 170 MB → 80 MB, nhưng CI so RAM
+  cùng harness với 0.2.1: peak private +19.7%, peak working set +27.4%, settled working set 10.2 → 19.4 MiB (assembly nén
+  phải giải nén vào bộ nhớ ẩn danh thay vì map từ file). Vi phạm chuẩn "nhẹ" ở mục 6 nên giữ nguyên không nén. Muốn EXE nhỏ
+  mà không tốn RAM chỉ còn cách framework-dependent (`--self-contained false`, ~1 MB nhưng người dùng phải cài .NET 8 Desktop
+  Runtime) — là quyết định sản phẩm, chưa làm.
+- **ReplyWindow đóng an toàn:** Closing làm Deactivated bắn, gọi `Close()` lồng nhau ném `InvalidOperationException` từ message pump
+  (ngoài try/catch, làm `--ui-review` chết sau khi chụp ảnh). Dùng `CloseOnce()` + `Dispatcher.BeginInvoke`; chế độ review nay
+  ghi `review-error.txt` cả khi lỗi đến từ `DispatcherUnhandledException`.
 - **Kiểm duyệt sticker 2026-11-13** (soi 6 frame/GIF trên nền sáng và tối):
   `funny-02` → `love-04` (gấu nâu ôm panda nhỏ, trái tim — là yêu, không phải cười); xoá `miss-01` (cùng cảnh với `miss-03`, nhỏ hơn).
   **`tease-02` là cảnh đi ngủ y hệt `goodnight-01`** — mood Ghét 😤 hiện không có sticker đúng, giữ tạm để ô không bị khoá;
