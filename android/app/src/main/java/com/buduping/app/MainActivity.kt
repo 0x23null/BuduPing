@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import com.buduping.app.ui.BuduPingTheme
 import com.buduping.app.ui.HomeScreen
 import com.buduping.app.ui.PairScreen
+import com.buduping.app.widget.FavoritesWidget
 
 class MainActivity : ComponentActivity() {
     private var foreground by mutableStateOf(false)
@@ -30,6 +31,7 @@ class MainActivity : ComponentActivity() {
                         onPaired = { name, pairId ->
                             prefs.senderName = name
                             prefs.pairId = pairId
+                            FavoritesWidget.refresh(this)
                             screen = Screen.Home
                         },
                     )
@@ -41,11 +43,13 @@ class MainActivity : ComponentActivity() {
                         onUnpair = {
                             ReplyService.stop(this@MainActivity)
                             prefs.clearPair()
+                            FavoritesWidget.refresh(this)
                             screen = Screen.Pair
                         },
                         onChangeCode = {
                             ReplyService.stop(this@MainActivity)
                             prefs.clearPair()
+                            FavoritesWidget.refresh(this)
                             screen = Screen.Pair
                         },
                     )

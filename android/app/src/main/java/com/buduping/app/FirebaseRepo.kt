@@ -2,11 +2,15 @@ package com.buduping.app
 
 import com.google.firebase.database.*
 import java.util.UUID
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 
 data class DesktopState(val online: Boolean = false, val ts: Long = 0)
 data class PairFeedback(
     val eventId: String = "", val status: String = "", val replyId: String = "",
     val replyType: String = "hug", val replyTs: Long = 0, val replyVariant: String = "",
+    val replyText: String = "", val replyCharacter: String = "",
 )
 
 class FirebaseRepo {
@@ -21,6 +25,18 @@ class FirebaseRepo {
             "ts" to ServerValue.TIMESTAMP)) { error, _ -> onResult(key, error?.toException()) }
         return key
     }
+
+    /** Widget path: wait for the server ack so the short-lived broadcast process stays alive until the write lands. */
+    suspend fun sendPingAndWait(pairId: String, type: String, from: String, variant: String, character: String, timeoutMs: Long = 8_000): SendOutcome {
+        val acked = withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine<Boolean> { cont ->
+                sendPing(pairId, type, "", from, variant, character, false) { _, error -> if (cont.isActive) cont.resume(error == null) }
+            }
+        }
+        return when (acked) { true -> SendOutcome.SENT; false -> SendOutcome.FAILED; null -> SendOutcome.QUEUED }
+    }
+
+    enum class SendOutcome { SENT, QUEUED, FAILED }
 
     fun observe(pairId: String, onPresence: (DesktopState) -> Unit, onFeedback: (PairFeedback) -> Unit,
                 onConnected: (Boolean) -> Unit, onClockOffset: (Long) -> Unit,
@@ -45,7 +61,9 @@ class FirebaseRepo {
                 replyId = it.child("reply/id").getValue(String::class.java) ?: "",
                 replyVariant = it.child("reply/variant").getValue(String::class.java) ?: "",
                 replyType = it.child("reply/type").getValue(String::class.java) ?: "hug",
-                replyTs = it.child("reply/ts").getValue(Long::class.java) ?: 0))
+                replyTs = it.child("reply/ts").getValue(Long::class.java) ?: 0,
+                replyText = it.child("reply/text").getValue(String::class.java) ?: "",
+                replyCharacter = it.child("reply/character").getValue(String::class.java) ?: ""))
         }
         listen(db.getReference(".info/connected")) { onConnected(it.getValue(Boolean::class.java) == true) }
         listen(db.getReference(".info/serverTimeOffset")) { onClockOffset(it.getValue(Long::class.java) ?: 0) }

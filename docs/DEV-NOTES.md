@@ -1,3 +1,31 @@
+## Current handoff — 0.3.2
+
+Nền là **v0.3.1** (`codex/buduping-0.2.3`, 16 mood, 50 sticker, notification nền). **Bubu là gấu trắng; Dudu là gấu nâu.**
+⚠️ `main` từng bị bỏ lại ở 0.2.2 trong khi 0.2.3→0.3.1 phát hành bằng tag từ nhánh codex — luôn kiểm tra `gh release list`
+và `git ls-remote --tags` trước khi tách nhánh.
+
+- **Hợp đồng feedback mở rộng (tương thích ngược):** `/pairs/{pairId}/feedback/reply` nay là
+  `{ id, replyTo, type, variant, character, text, ts }`. `type` là bất kỳ 1 trong 16 mood (trước chỉ `hug`);
+  `replyTo` có thể rỗng vì PC được chủ động gửi khi chưa nhận gì; `text` ≤ 80 ký tự; `character` là nhân vật PC chọn.
+  Android cũ bỏ qua trường lạ và vẫn hiện sticker theo `variant`.
+- **PC:** `Ctrl+Alt+Space`, menu tray và nút cài đặt mở `Ui/ReplyWindow` (lưới 16 mood qua `Core/Emotions.cs` + ô lời nhắn;
+  emoji vẽ bằng `EmojiArt` — đã thêm 4 PNG Twemoji 1f44b/1f624/1f972/1f632). Hotkey bấm lần nữa thì đóng; Enter gửi ô đang
+  focus (mặc định Ôm). Đóng cửa sổ dùng `CloseOnce()` + `Dispatcher.BeginInvoke` vì Closing làm Deactivated bắn, `Close()`
+  lồng nhau ném exception từ message pump (CI từng chết vì vậy). `--ui-review` chụp `reply-picker.png`, kiểm tra đủ 16 ô,
+  và ghi `review-error.txt` cả khi lỗi đến từ `DispatcherUnhandledException`.
+- **Android nhận đáp lại:** dialog + notification nền (`ReplyNotifier.show(type, text, character)`) ghi "Bubu/Dudu gửi <mood>",
+  kèm lời nhắn; rung theo mẫu riêng từng mood (`ReplyHaptics`).
+- **Widget màn hình chính** (`widget/FavoritesWidget`, Glance 1.1.1): 4 ô = cảm xúc đã ghim (bù theo thứ tự lưới, lọc theo
+  nhân vật); chạm gửi quick-tap y hệt trong app (`variantLocked=false`), đợi ack ≤ 8 s rồi ghi trạng thái vào state widget.
+  Chưa ghép cặp thì mở app. App gọi `FavoritesWidget.refresh()` khi đổi ghim/nhân vật/ghép cặp.
+- **EXE nén — đã thử và bỏ (2026-11-13):** `EnableCompressionInSingleFile` cho EXE 170 → 80 MB nhưng CI đo cùng harness:
+  peak working set +27.4%, settled 10.2 → 19.4 MiB. Giữ nguyên không nén.
+- **Kiểm duyệt sticker 2026-11-13 (50 → 48):** `funny-02`→`love-04` (ôm panda nhỏ + tim = yêu); `miss-05`→`kiss-04` ("啵~" + tim);
+  xoá `miss-01` (trùng `miss-03`) và `tease-02` (trùng cảnh `goodnight-01`; tease còn 03/04/05 đúng nghĩa trêu).
+  `hello/peek-03` frame cuối đen kịt (27.763/27.814 px) → cắt frame bằng encoder của `make_transparent.py`.
+  Còn để ý: `shy-01` thiên về thả tim (flirty) hơn ngại; `hang-01` caption "屁股好疼" và `peek-01` "害怕" không phải lời chào
+  nhưng là cố ý cho hiệu ứng ló ra ở mép; 2-frame gần tĩnh: `angry-02`, `hungry-01`; `funny-05` 3 frame.
+
 ## Current handoff — 0.2.2
 
 Read [DEVELOPMENT-REPORT-0.2.2.md](DEVELOPMENT-REPORT-0.2.2.md) first. It corrects older character-name assumptions: **Bubu is white; Dudu is brown**. Preserve the shipped 0.2.1 memory engine.

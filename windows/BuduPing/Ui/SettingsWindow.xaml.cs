@@ -30,7 +30,7 @@ public partial class SettingsWindow : Window
         MonitorCombo.SelectedItem = displays.FirstOrDefault(x => x.Device == _app.Config.MonitorDevice) ?? displays.FirstOrDefault();
         CornerCombo.SelectedValue = _app.Config.Corner;
         ScaleCombo.SelectedValue = _app.Config.OverlayScale.ToString(CultureInfo.InvariantCulture);
-        HotkeyStatus.Text = _app.HotkeyAvailable ? "Ctrl+Alt+Space: gửi một cái ôm đáp lại." :
+        HotkeyStatus.Text = _app.HotkeyAvailable ? "Ctrl+Alt+Space: mở bảng gửi đáp lại với 16 cảm xúc và lời nhắn." :
             "Phím tắt đang được ứng dụng khác sử dụng. Bạn vẫn có thể đáp lại bằng nút dưới đây hoặc menu tray.";
         RefreshDeliveryState();
         CharacterCombo.SelectedValue = _app.Config.MyCharacter;
@@ -69,7 +69,7 @@ public partial class SettingsWindow : Window
         if (double.TryParse(ScaleCombo.SelectedValue as string, CultureInfo.InvariantCulture, out var scale)) _app.Config.OverlayScale = scale;
         _app.ApplyPreferences();
     }
-    private async void ReplyButton_Click(object sender, RoutedEventArgs e) => await _app.ReplyToLastAsync();
+    private void ReplyButton_Click(object sender, RoutedEventArgs e) => _app.OpenReplyPicker();
     private void PendingButton_Click(object sender, RoutedEventArgs e) => _app.OpenPending();
     private void TestButton_Click(object sender, RoutedEventArgs e) => _app.SendTestPing();
     private void Character_Changed(object sender, SelectionChangedEventArgs e)

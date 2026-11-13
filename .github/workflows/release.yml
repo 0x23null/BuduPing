@@ -136,7 +136,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ needs.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
-          name: "BuduPing ${{ needs.version.outputs.tag }} — reliable background hug-back notifications, smoother spam, faster startup trim"
+          name: "BuduPing ${{ needs.version.outputs.tag }} — 16-mood reply picker, home-screen widget, sticker cleanup"
           prerelease: true
           body_path: docs/RELEASE-NOTES.md
           files: |

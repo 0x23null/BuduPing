@@ -13,8 +13,8 @@ android {
         applicationId = "com.buduping.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 31
-        versionName = "0.3.1"
+        versionCode = 32
+        versionName = "0.3.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["timeout_msec"] = "90000"
     }
@@ -49,6 +49,9 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
+
+    // --- Home-screen widget (Glance renders Compose-style UI into RemoteViews) ---
+    implementation("androidx.glance:glance-appwidget:1.1.1")
 
     // --- Firebase (BOM pins firebase artifacts; DB URL comes from google-services.json) ---
     val firebaseBom = platform("com.google.firebase:firebase-bom:33.7.0")

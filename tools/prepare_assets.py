@@ -22,7 +22,6 @@ CHARACTERS = {
     'cheer-01': ['bubu', 'dudu'],
     'cheer-03': ['bubu', 'dudu'],
     'funny-01': ['bubu'],
-    'funny-02': ['bubu', 'dudu'],
     'funny-03': ['dudu'],
     'goodnight-01': ['bubu', 'dudu'],
     'goodnight-03': ['bubu', 'dudu'],
@@ -34,16 +33,16 @@ CHARACTERS = {
     'kiss-01': ['bubu', 'dudu'],
     'kiss-02': ['bubu', 'dudu'],
     'kiss-03': ['bubu', 'dudu'],
+    'kiss-04': ['bubu', 'dudu'],  # was miss-05: floor cuddle with a "啵~" smooch and hearts (audit 2026-11-13)
     'love-02': ['dudu'],  # brown bear with "i love you" baked caption
     'love-03': ['bubu'],
-    'miss-01': ['bubu', 'dudu'],
-    'miss-03': ['bubu', 'dudu'],
+    'love-04': ['bubu', 'dudu'],  # was funny-02: bear cuddling a mini panda with hearts (audit 2026-11-13)
+    'miss-03': ['bubu', 'dudu'],  # miss-01 removed: same stool scene, smaller
     'miss-04': ['bubu'],
     'sad-01': ['bubu'],  # white panda crying a tear pool
     'sad-02': ['bubu'],  # white panda alone with purple object
     'sorry-01': ['bubu'],  # white panda bowing alone
     'sorry-02': ['bubu'],
-    'tease-02': ['bubu', 'dudu'],
     'hello-01': ['bubu'],
     'hello-02': ['bubu'],
     'hello-03': ['dudu'],
@@ -58,7 +57,6 @@ CHARACTERS = {
     'shy-03': ['bubu'],
     'sleepy-01': ['dudu'],
     'sleepy-02': ['bubu'],
-    'miss-05': ['bubu', 'dudu'],
     'hungry-03': ['dudu'],
     'cheer-04': ['dudu'],
     'angry-03': ['dudu'],
