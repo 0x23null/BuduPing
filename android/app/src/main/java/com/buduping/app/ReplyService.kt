@@ -54,7 +54,7 @@ class ReplyService : Service() {
                         !AppForeground.isForeground
                     ) {
                         prefs.lastReplyId = feedback.replyId
-                        ReplyNotifier.show(this, feedback.replyType)
+                        ReplyNotifier.show(this, feedback.replyType, feedback.replyText, feedback.replyCharacter)
                     }
                 },
                 onError = {})

@@ -3,6 +3,13 @@
 Một chạm trên Android, một sticker Bubu & Dudu xuất hiện trên máy Windows của người thương.
 Hai ứng dụng native dùng Firebase Realtime Database và mã ghép cặp `XXXX-XXXX`, không cần đăng nhập.
 
+## Bản 0.3.2
+
+- **PC đáp lại đủ 16 cảm xúc + lời nhắn:** `Ctrl+Alt+Space` (hoặc menu tray) mở bảng chọn; Enter gửi Ôm như cũ. Điện thoại nhận đúng cảm xúc, tên nhân vật gửi, lời nhắn, và rung theo mẫu riêng từng cảm xúc.
+- **Widget màn hình chính Android:** 4 cảm xúc đã ghim, chạm là gửi không cần mở app.
+- Soi lại 50 sticker: chuyển hai file sang đúng mood, bỏ hai file trùng, sửa `peek-03` có frame đen.
+- Bản mới nhất luôn ở [Releases](https://github.com/0x23null/BuduPing/releases); lịch sử 0.2.3→0.3.1 xem release notes từng tag.
+
 ## Bản 0.2.2 preview
 
 - **Android / Kotlin + Compose:** lưới 12 cảm xúc, hình sticker thật, lời nhắn tuỳ chọn, giữ để chọn biến thể hoặc ghim. Có giao diện sáng/tối và phản hồi ngay khi chạm.

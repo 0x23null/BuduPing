@@ -28,12 +28,13 @@ public partial class App : Application
     private SoundService? _sounds;
     private CancellationTokenSource? _presenceCts;
     private ReplyHotkey? _hotkey;
+    private ReplyWindow? _replyWindow;
     private MenuItem? _discreetMenu;
     private bool _replying;
     private DateTime _lastReply = DateTime.MinValue;
     public bool IsExiting => _exiting;
     public bool HotkeyAvailable => _hotkey?.Registered == true;
-    public bool CanReply => _overlay?.LastPing != null;
+    public bool CanReply => _sync != null;
     public int PendingCount => _overlay?.PendingCount ?? 0;
     private readonly Random _rng = new();
     private bool _exiting;
@@ -82,7 +83,7 @@ public partial class App : Application
         StartPresence();
 
         _hotkey = new ReplyHotkey();
-        _hotkey.Pressed += () => _ = ReplyToLastAsync();
+        _hotkey.Pressed += OpenReplyPicker;
         MemoryTrim.Record("startup", _stickers.DecodedBytes);
         if (!Config.HasSeenSetup) { OpenSettings(); Config.HasSeenSetup = true; AppConfigStore.Save(Config); }
         else if (!e.Args.Contains("--autostart")) new StartupNotice(Config).Show();
@@ -98,6 +99,9 @@ public partial class App : Application
     private void RenderUiReview(string directory)
     {
         Directory.CreateDirectory(directory);
+        // Crashes raised from the message pump bypass the timer's try/catch; keep them diagnosable.
+        DispatcherUnhandledException += (_, args) =>
+            File.WriteAllText(Path.Combine(directory, "review-error.txt"), args.Exception.ToString());
         Config = new AppConfig { PairCode = PairCode.Generate(), HasSeenSetup = true };
         _stickers = new StickerService(Path.Combine(AppContext.BaseDirectory, "Assets", "Stickers"));
         _stickers.Preload();
@@ -162,6 +166,10 @@ public partial class App : Application
                 _overlay.ResetPair();
                 var notice = new StartupNotice(Config, autoDismiss: false); notice.Show(); notice.UpdateLayout();
                 SaveVisual((FrameworkElement)notice.Content, "startup-notice.png"); notice.Close();
+                var picker = new ReplyWindow(this, _stickers); picker.Show(); picker.UpdateLayout();
+                if (picker.DefaultType != "hug" || picker.FindName("TileGrid") is not System.Windows.Controls.Primitives.UniformGrid { Children.Count: 16 })
+                    throw new InvalidOperationException("Reply picker did not expose all 16 moods with hug focused.");
+                SaveVisual((FrameworkElement)picker.Content, "reply-picker.png"); picker.Close();
                 File.WriteAllText(Path.Combine(directory, "behavior-checks.json"),
                     "{\"combo13\":true,\"spam200\":true,\"discreetTest\":true,\"discreetReply\":true}");
                 void AssertDiscreet()
@@ -249,8 +257,8 @@ public partial class App : Application
         menu.Items.Add(_soundMenuItem);
         _discreetMenu = new MenuItem { Header = "Chế độ kín đáo", IsCheckable = true, IsChecked = Config.DiscreetMode };
         _discreetMenu.Click += (_, _) => SetDiscreet(_discreetMenu.IsChecked);
-        var reply = new MenuItem { Header = "Gửi ôm đáp lại (Ctrl+Alt+Space)" };
-        reply.Click += (_, _) => _ = ReplyToLastAsync();
+        var reply = new MenuItem { Header = "💌 Gửi đáp lại… (Ctrl+Alt+Space)" };
+        reply.Click += (_, _) => OpenReplyPicker();
         var pending = new MenuItem { Header = "Mở xem các lời nhắn đang chờ" };
         pending.Click += (_, _) => OpenPending();
         menu.Items.Add(_discreetMenu); menu.Items.Add(reply); menu.Items.Add(pending);
@@ -341,25 +349,34 @@ public partial class App : Application
         _overlay?.ApplyPreferences();
     }
 
-    public async Task ReplyToLastAsync()
+    public void OpenReplyPicker()
     {
-        var ping = _overlay?.LastPing;
-        if (_replying || ping == null || _sync == null || (DateTime.UtcNow - _lastReply).TotalSeconds < 1) return;
+        if (_stickers == null || _sync == null) return;
+        if (_replyWindow is { IsLoaded: true }) { _replyWindow.Close(); return; } // hotkey toggles
+        _replyWindow = new ReplyWindow(this, _stickers);
+        _replyWindow.Closed += (_, _) => _replyWindow = null;
+        _replyWindow.Show();
+    }
+
+    /// <summary>Send one mood (with optional text) to the phone and echo a local confirmation on the overlay.</summary>
+    public async Task<bool> SendReplyAsync(string type, string text = "")
+    {
+        if (_replying || _sync == null || !Emotions.IsKnown(type) || (DateTime.UtcNow - _lastReply).TotalMilliseconds < 400) return false;
         _replying = true;
-        string variant = _stickers?.PickVariant("hug", Config.MyCharacter) ?? "";
-        bool sent = await _sync.ReplyAsync(ping, variant);
+        string variant = _stickers?.PickVariant(type, Config.MyCharacter) ?? "";
+        bool sent = await _sync.ReplyAsync(type, variant, text, Config.MyCharacter, _overlay?.LastPing?.Id ?? "");
         _replying = false;
         if (sent)
         {
             _lastReply = DateTime.UtcNow;
-            ShowReplyConfirmation(variant);
+            ShowReplyConfirmation(variant, type, text);
         }
-        else _tray?.ShowBalloonTip("BuduPing", "Chưa gửi được cái ôm. Thử lại khi có mạng nhé.", BalloonIcon.Warning);
+        return sent; // the picker shows the inline failure hint
     }
 
-    internal void ShowReplyConfirmation(string variant)
-        => _overlay?.ShowPing(new PingEvent { Type = "hug", Variant = variant, Character = Config.MyCharacter,
-            Text = "Đã gửi một cái ôm đáp lại.", IsLocal = true });
+    internal void ShowReplyConfirmation(string variant, string type = "hug", string text = "")
+        => _overlay?.ShowPing(new PingEvent { Type = type, Variant = variant, Character = Config.MyCharacter, From = "Bạn",
+            Text = string.IsNullOrWhiteSpace(text) ? $"Đã gửi {StickerService.LabelFor(type)} đáp lại." : text.Trim(), IsLocal = true });
 
     public void RegeneratePairCode()
     {

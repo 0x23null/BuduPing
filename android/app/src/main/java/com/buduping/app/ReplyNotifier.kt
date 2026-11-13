@@ -25,7 +25,7 @@ object ReplyNotifier {
         Build.VERSION.SDK_INT < 33 ||
             context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-    fun show(context: Context, replyType: String) {
+    fun show(context: Context, replyType: String, replyText: String = "", replyCharacter: String = "") {
         if (!isGranted(context)) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         if (Build.VERSION.SDK_INT >= 26 && manager.getNotificationChannel(CHANNEL_ID) == null) {
@@ -34,20 +34,24 @@ object ReplyNotifier {
                     description = "Khi người thương ôm hoặc đáp lại từ PC"
                 })
         }
-        val label = EMOTIONS.firstOrNull { it.type == replyType }?.label ?: "Ôm"
+        val mood = EMOTIONS.firstOrNull { it.type == replyType }
+        val label = mood?.label ?: "Ôm"
+        val sender = when (replyCharacter) { "bubu" -> "Bubu"; "dudu" -> "Dudu"; else -> "Người thương" }
         val open = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pending = PendingIntent.getActivity(
             context, 0, open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val body = if (replyText.isNotBlank()) "“$replyText”" else "$label từ PC — mở BuduPing xem nhé"
         val notification = android.app.Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_heart)
-            .setContentTitle("Người thương vừa đáp lại nè 💌")
-            .setContentText("$label từ PC — mở BuduPing xem nhé")
+            .setContentTitle("$sender gửi $label ${mood?.emoji ?: "💌"}".trim())
+            .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
         manager.notify(NOTIF_ID, notification)
+        ReplyHaptics.play(context, replyType)
     }
 }
