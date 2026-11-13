@@ -1,6 +1,6 @@
 # CI report: windows
 - status: success
 - workflow: Build Windows (BuduPing)
-- run: 43383841623/61
-- sha: f803f0647b8dcb588ceb75bd93d8a55c9917c08a
-- time: 2026-11-13T07:14:46Z
+- run: 43385285273/62
+- sha: 311047e6a3905c015e560f0bb16f3de929626f5f
+- time: 2026-11-13T07:26:23Z
